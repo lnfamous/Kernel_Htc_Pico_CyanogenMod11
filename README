@@ -4,7 +4,7 @@ WORKING
 =======
 
 - Touchscreen
-- Sound ( Volume is a bit low)
+- Sound
 - Hardware Acceleration
 - Brightness / Screen controls
 - Accelerometer
@@ -21,12 +21,13 @@ WORKING
 - GPS
 - Storage (Both sdcard and sd-ext works)
 - Deep Sleep
-- USB
-- WiFi (Kernel side OK)
-- Bluetooth (Kernel side OK)
-
+- USB 
+- WiFi
+- Bluetooth
+- FM Radio
 
 NOT WORKING
 ===========
 
-- Hardware Buttons(Volume up and power button)
+- Nothing really
+
