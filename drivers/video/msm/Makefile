@@ -2,6 +2,7 @@ ifeq ($(CONFIG_FB_MSM_MDSS_COMMON),y)
 obj-y += mdss/
 else
 obj-y := msm_fb.o
+obj-y += lcd_notify.o
 
 obj-$(CONFIG_FB_MSM_LOGO) += logo.o
 obj-$(CONFIG_FB_BACKLIGHT) += msm_fb_bl.o
@@ -117,7 +118,7 @@ obj-y += mipi_novatek_video_hvga_pt.o mipi_novatek_cmd_hvga_pt.o
 obj-y += mipi_samsung_cmd_hvga_pt.o
 else
 obj-$(CONFIG_FB_MSM_MIPI_NOVATEK_CMD_HVGA_PT) += mipi_novatek_cmd_hvga_pt.o mipi_samsung_cmd_hvga_pt.o
-obj-$(CONFIG_FB_MSM_MIPI_NOVATEK_VIDEO_HVGA_PT) += mipi_novatek_video_hvga_pt.o 
+obj-$(CONFIG_FB_MSM_MIPI_NOVATEK_VIDEO_HVGA_PT) += mipi_novatek_video_hvga_pt.o
 endif
 
 obj-$(CONFIG_FB_MSM_LCDC_PANEL) += lcdc_panel.o

@@ -16,6 +16,7 @@
 #include "msm_fb.h"
 #include "mipi_dsi.h"
 #include "mipi_samsung.h"
+#include <linux/lcd_notify.h>
 #ifdef CONFIG_HIMAX_WAKE_MOD_POCKETMOD
 #include <linux/towake.h>
 #endif
@@ -448,6 +449,7 @@ static int mipi_samsung_lcd_on(struct platform_device *pdev)
 	struct mipi_panel_info *mipi;
 	struct dcs_cmd_req cmdreq;
 
+	lcd_notifier_call_chain(LCD_EVENT_ON_START, NULL);
 	mfd = platform_get_drvdata(pdev);
 	if (!mfd)
 		return -ENODEV;
@@ -482,6 +484,7 @@ static int mipi_samsung_lcd_on(struct platform_device *pdev)
 	}
 
 	PR_DISP_INFO("Init done!\n");
+	lcd_notifier_call_chain(LCD_EVENT_ON_END, NULL);
 	return 0;
 }
 
@@ -492,6 +495,7 @@ static int mipi_samsung_lcd_off(struct platform_device *pdev)
 
 	PR_DISP_INFO("%s\n", __func__);
 
+	lcd_notifier_call_chain(LCD_EVENT_OFF_START, NULL);
 	mfd = platform_get_drvdata(pdev);
 
 	if (!mfd)
@@ -513,6 +517,7 @@ static int mipi_samsung_lcd_off(struct platform_device *pdev)
 		printk(KERN_ERR "panel_type=0x%x not support at power off\n",
 			panel_type);
 
+	lcd_notifier_call_chain(LCD_EVENT_OFF_END, NULL);
 	return 0;
 }
 
