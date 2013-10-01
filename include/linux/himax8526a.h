@@ -4,6 +4,7 @@
 #include <linux/i2c.h>
 
 #define HIMAX8526A_NAME "Himax8526a"
+#define HIMAX8526A_FINGER_SUPPORT_NUM 4
 
 struct himax_config_init_api {
 	int (*i2c_himax_master_write)(struct i2c_client *client, uint8_t *data, uint8_t length);
@@ -25,7 +26,6 @@ struct himax_i2c_platform_data {
 	int gpio_irq;
 	uint8_t tw_id;
 	uint8_t slave_addr;
-	uint32_t event_htc_enable;
 	int (*loadSensorConfig)(struct i2c_client *client, struct himax_i2c_platform_data **pdata, struct himax_config_init_api *i2c_api);
 	uint8_t cable_config[2];
 	void (*reset)(void);
