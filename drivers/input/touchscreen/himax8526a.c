@@ -1,6 +1,7 @@
 /* drivers/input/touchscreen/himax8250.c
  *
  * Copyright (C) 2011 HTC Corporation.
+ * Copyright (C) 2013 TeamHackLG
  *
  * This software is licensed under the terms of the GNU General Public
  * License version 2, as published by the Free Software Foundation, and
@@ -28,6 +29,13 @@
 #include <mach/board.h>
 #include <asm/atomic.h>
 
+#ifdef ABS_MT_SLOT
+#define INPUT_PROTOCOL_B
+#include <linux/input/mt.h>
+#else
+#define INPUT_PROTOCOL_A
+#endif
+
 #define HIMAX_I2C_RETRY_TIMES 10
 #define ESD_WORKAROUND
 
@@ -50,10 +58,10 @@ struct himax_ts_data {
 	int16_t diag_data[200];
 	uint8_t finger_pressed;
 	uint8_t first_pressed;
-	int pre_finger_data[2];
+	int pre_finger_data[HIMAX8526A_FINGER_SUPPORT_NUM][2];
 	uint8_t suspend_mode;
+	uint8_t last_slot;
 	struct himax_i2c_platform_data *pdata;
-	uint32_t event_htc_enable;
 	struct himax_config_init_api i2c_api;
 };
 static struct himax_ts_data *private_ts;
@@ -88,8 +96,8 @@ int i2c_himax_read(struct i2c_client *client, uint8_t command, uint8_t *data, ui
 		msleep(10);
 	}
 	if (retry == HIMAX_I2C_RETRY_TIMES) {
-		printk(KERN_INFO "i2c_read_block retry over %d\n",
-			HIMAX_I2C_RETRY_TIMES);
+		printk(KERN_ERR "[TS]%s: i2c_read_block retry over %d\n",
+			__func__, HIMAX_I2C_RETRY_TIMES);
 		return -EIO;
 	}
 	return 0;
@@ -122,8 +130,8 @@ int i2c_himax_write(struct i2c_client *client, uint8_t command, uint8_t *data, u
 	}
 
 	if (retry == HIMAX_I2C_RETRY_TIMES) {
-		printk(KERN_ERR "i2c_write_block retry over %d\n",
-			HIMAX_I2C_RETRY_TIMES);
+		printk(KERN_ERR "[TS]%s: i2c_write_block retry over %d\n",
+			__func__, HIMAX_I2C_RETRY_TIMES);
 		return -EIO;
 	}
 	return 0;
@@ -159,8 +167,8 @@ int i2c_himax_master_write(struct i2c_client *client, uint8_t *data, uint8_t len
 	}
 
 	if (retry == HIMAX_I2C_RETRY_TIMES) {
-		printk(KERN_ERR "i2c_write_block retry over %d\n",
-		       HIMAX_I2C_RETRY_TIMES);
+		printk(KERN_ERR "[TS]%s: i2c_write_block retry over %d\n",
+		       __func__, HIMAX_I2C_RETRY_TIMES);
 		return -EIO;
 	}
 	return 0;
@@ -184,8 +192,8 @@ int i2c_himax_read_command(struct i2c_client *client, uint8_t length, uint8_t *d
 		msleep(10);
 	}
 	if (retry == HIMAX_I2C_RETRY_TIMES) {
-		printk(KERN_INFO "i2c_read_block retry over %d\n",
-		       HIMAX_I2C_RETRY_TIMES);
+		printk(KERN_ERR "[TS]%s: i2c_read_block retry over %d\n",
+		       __func__, HIMAX_I2C_RETRY_TIMES);
 		return -EIO;
 	}
 	return 0;
@@ -200,9 +208,9 @@ static ssize_t himax_register_show(struct device *dev,
 	uint8_t data[64] = { 0 }, loop_i;
 	struct himax_ts_data *ts_data;
 	ts_data = private_ts;
-	printk(KERN_INFO "%x\n", himax_command);
+	printk(KERN_INFO "[TS]%s: %x\n", __func__, himax_command);
 	if (i2c_himax_read(ts_data->client, himax_command, data, 64) < 0) {
-		printk(KERN_WARNING "%s: read fail\n", __func__);
+		printk(KERN_WARNING "[TS]%s: read fail\n", __func__);
 		return ret;
 	}
 
@@ -240,8 +248,8 @@ static ssize_t himax_register_store(struct device *dev,
 					if (buf[0] == 'w')
 						i2c_himax_write(ts_data->client, himax_command,
 							&write_da[0], length);
-					printk(KERN_INFO "CMD: %x, %x, %d\n", himax_command,
-						write_da[0], length);
+					printk(KERN_INFO "[TS]%s: CMD: %x, %x, %d\n", __func__,
+						himax_command,	write_da[0], length);
 					for (veriLen = 0; veriLen < length; veriLen++) {
 						printk(KERN_INFO "%x ", *((&write_da[0])+veriLen));
 					}
@@ -358,7 +366,7 @@ static ssize_t himax_diag_dump(struct device *dev,
 	uint8_t new_command[2] = {0x91, 0x00};
 
 	ts_data = private_ts;
-	printk(KERN_DEBUG "%s: entered, buf[0]=%c.\n", __func__, buf[0]);
+	printk(KERN_DEBUG "[TS]%s: entered, buf[0]=%c.\n", __func__, buf[0]);
 	if (buf[0] == '1' || buf[0] == '3' || buf[0] == '5') {
 		new_command[1] = command_ec_128_raw_baseline_flag;
 		i2c_himax_master_write(ts_data->client, new_command, sizeof(new_command));
@@ -378,28 +386,6 @@ static ssize_t himax_diag_dump(struct device *dev,
 
 static DEVICE_ATTR(diag, (S_IWUSR|S_IRUGO),
 	himax_diag_show, himax_diag_dump);
-
-static ssize_t himax_set_event_htc(struct device *dev, struct device_attribute *attr,
-						const char *buf, size_t count)
-{
-	struct himax_ts_data *ts_data;
-	unsigned long result = 0;
-	ts_data = private_ts;
-	if (!strict_strtoul(buf, 10, &result)) {
-		ts_data->event_htc_enable = result;
-
-		pr_info("[ts]event htc enable = %d\n", ts_data->event_htc_enable);
-	}
-	return count;
-}
-
-static ssize_t himax_show_event_htc(struct device *dev, struct device_attribute *attr, char *buf)
-{
-	struct himax_ts_data *ts_data;
-	ts_data = private_ts;
-	return sprintf(buf, "event htc enable = %d\n", ts_data->event_htc_enable);
-}
-static DEVICE_ATTR(event_htc, (S_IWUSR|S_IRUGO), himax_show_event_htc, himax_set_event_htc);
 
 static ssize_t himax_reset_show(struct device *dev,
 		struct device_attribute *attr, char *buf)
@@ -432,7 +418,7 @@ static ssize_t himax_reset_set(struct device *dev,
 		if (ret && ts_data->use_irq)
 			enable_irq(ts_data->client->irq);
 
-		printk(KERN_INFO "%s: Now reset the Touch chip.\n", __func__);
+		printk(KERN_INFO "[TS]%s: Now reset the Touch chip.\n", __func__);
 
 		ts_data->pdata->reset();
 
@@ -452,40 +438,35 @@ static int himax_touch_sysfs_init(void)
 	int ret;
 	android_touch_kobj = kobject_create_and_add("android_touch", NULL);
 	if (android_touch_kobj == NULL) {
-		printk(KERN_ERR "%s: subsystem_register failed\n", __func__);
+		printk(KERN_ERR "[TS]%s: subsystem_register failed\n", __func__);
 		ret = -ENOMEM;
 		return ret;
 	}
 	ret = sysfs_create_file(android_touch_kobj, &dev_attr_debug_level.attr);
 	if (ret) {
-		printk(KERN_ERR "TOUCH_ERR: create_file debug_level failed\n");
+		printk(KERN_ERR "[TS]%s: create_file debug_level failed\n", __func__);
 		return ret;
 	}
 	himax_command = 0;
 	ret = sysfs_create_file(android_touch_kobj, &dev_attr_register.attr);
 	if (ret) {
-		printk(KERN_ERR "TOUCH_ERR: create_file register failed\n");
+		printk(KERN_ERR "[TS]%s: create_file register failed\n", __func__);
 		return ret;
 	}
 
 	ret = sysfs_create_file(android_touch_kobj, &dev_attr_vendor.attr);
 	if (ret) {
-		printk(KERN_ERR "%s: sysfs_create_file failed\n", __func__);
+		printk(KERN_ERR "[TS]%s: sysfs_create_file failed\n", __func__);
 		return ret;
 	}
 	ret = sysfs_create_file(android_touch_kobj, &dev_attr_diag.attr);
 	if (ret) {
-		printk(KERN_ERR "TOUCH_ERR: create_file diag failed\n");
-		return ret;
-	}
-	ret = sysfs_create_file(android_touch_kobj, &dev_attr_event_htc.attr);
-	if (ret) {
-		printk(KERN_ERR "TOUCH_ERR: %s: sysfs_create_file failed\n", __func__);
+		printk(KERN_ERR "[TS]%s: create_file diag failed\n", __func__);
 		return ret;
 	}
 	ret = sysfs_create_file(android_touch_kobj, &dev_attr_reset.attr);
 	if (ret) {
-		printk(KERN_ERR "TOUCH_ERR: %s: sysfs_create_file failed\n", __func__);
+		printk(KERN_ERR "[TS]%s: sysfs_create_file failed\n", __func__);
 		return ret;
 	}
 
@@ -498,7 +479,6 @@ static void himax_touch_sysfs_deinit(void)
 	sysfs_remove_file(android_touch_kobj, &dev_attr_debug_level.attr);
 	sysfs_remove_file(android_touch_kobj, &dev_attr_register.attr);
 	sysfs_remove_file(android_touch_kobj, &dev_attr_vendor.attr);
-	sysfs_remove_file(android_touch_kobj, &dev_attr_event_htc.attr);
 	sysfs_remove_file(android_touch_kobj, &dev_attr_reset.attr);
 	kobject_del(android_touch_kobj);
 }
@@ -506,39 +486,40 @@ static void himax_touch_sysfs_deinit(void)
 static void himax_ts_work_func(struct work_struct *work)
 {
 	struct himax_ts_data *ts = container_of(work, struct himax_ts_data, work);
-	uint8_t buf[128], loop_i, finger_num, finger_pressed;
+	uint8_t buf[128], loop_i, finger_pressed;
 #ifdef ESD_WORKAROUND
 	uint32_t checksum;
 #endif
 	memset(buf, 0x00, sizeof(buf));
 
 	if (i2c_himax_read(ts->client, 0x86, buf, ts->diag_command ? 128 : 24)) {
-		printk(KERN_ERR "%s: can't read data from chip!\n", __func__);
+		printk(KERN_ERR "[TS]%s: can't read data from chip!\n", __func__);
 		goto err_workqueue_out;
 	} else {
 #ifdef ESD_WORKAROUND
-		for (loop_i = 0, checksum = 0; loop_i < (ts->diag_command ? 128 : 24); loop_i++)
+
+		for (loop_i = 0, checksum = 0; loop_i < (ts->diag_command ? 128 : 24); loop_i++) {
 			checksum += buf[loop_i];
+		}
 
 		if (checksum == 0 && !reset_activate) {
 			msleep(20);
-			printk(KERN_INFO "%s: ESD reset detected, load sensor config.\n", __func__);
+			printk(KERN_INFO "[TS]%s: ESD reset detected, load sensor config.\n", __func__);
 			ts->pdata->loadSensorConfig(ts->client, &(ts->pdata), &(ts->i2c_api));
 			reset_activate = 1;
 			goto err_workqueue_out;
 		} else if (checksum == 0 && reset_activate) {
 			msleep(20);
-			printk(KERN_INFO "%s: back from ESD reset, but reset by ESD again.\n", __func__);
+			printk(KERN_INFO "[TS]%s: back from ESD reset, but reset by ESD again.\n", __func__);
 			ts->pdata->loadSensorConfig(ts->client, &(ts->pdata), &(ts->i2c_api));
 			goto err_workqueue_out;
 		} else if (checksum == 0xFF && reset_activate && buf[0] == 0xFF) {
 			reset_activate = 0;
-			printk(KERN_INFO "%s: back from ESD reset, ready to serve.\n", __func__);
+			printk(KERN_INFO "[TS]%s: back from ESD reset, ready to serve.\n", __func__);
 			goto err_workqueue_out;
 		}
 #endif
 	}
-
 	if (ts->debug_log_level & 0x1) {
 		printk(KERN_INFO "%s: raw data:\n", __func__);
 		for (loop_i = 0; loop_i < 24; loop_i++) {
@@ -560,76 +541,82 @@ static void himax_ts_work_func(struct work_struct *work)
 				if ((buf[loop_i * 2 + 28] & 0x80) == 0x80) {
 					ts->diag_data[index + loop_i] = 0 -
 						((buf[loop_i * 2 + 28] << 8 | buf[loop_i * 2 + 29]) & 0x4FFF);
-				} else
+				} else {
 					ts->diag_data[index + loop_i] =
 						buf[loop_i * 2 + 28] << 8 | buf[loop_i * 2 + 29];
 				/* printk("Header: %d, data: %5d\n", buf[24],
 					ts->diag_data[loop_i]); */
+				}
 			}
 		}
 	}
 
 	if (buf[20] == 0xFF && buf[21] == 0xFF) {
 		/* finger leave */
-		if (!ts->event_htc_enable) {
-			input_report_abs(ts->input_dev, ABS_MT_TOUCH_MAJOR, 0);
-			input_report_abs(ts->input_dev, ABS_MT_PRESSURE, 0);
-                      input_report_key(ts->input_dev, BTN_TOUCH, 0);
-        input_mt_sync(ts->input_dev);
-		} else {
-			input_report_abs(ts->input_dev, ABS_MT_AMPLITUDE, 0);
-			input_report_abs(ts->input_dev, ABS_MT_POSITION, 1 << 31);
-		}
+		input_report_abs(ts->input_dev, ABS_MT_TOUCH_MAJOR, 0);
+		input_report_abs(ts->input_dev, ABS_MT_PRESSURE, 0);
+      input_report_key(ts->input_dev, BTN_TOUCH, 0);
+#ifdef INPUT_PROTOCOL_A
+		input_mt_sync(ts->input_dev);
+#else
+		input_mt_slot(ts->input_dev, ts->last_slot);
+		input_mt_report_slot_state(ts->input_dev, MT_TOOL_FINGER, 0);
+#endif
 
 		if (ts->first_pressed == 1) {
 			ts->first_pressed = 2;
 			printk(KERN_INFO "E1@%d, %d\n",
-				ts->pre_finger_data[0] , ts->pre_finger_data[1]);
+				ts->pre_finger_data[0][0] , ts->pre_finger_data[0][1]);
 		}
 
 		if (ts->debug_log_level & 0x2)
-			printk(KERN_INFO "Finger leave\n");
+			printk(KERN_INFO "[TS] All Fingers left\n");
 	} else {
-		finger_num = buf[20] & 0x0F;
 		finger_pressed = buf[21];
-		for (loop_i = 0; loop_i < 4; loop_i++) {
+		for (loop_i = 0; loop_i < HIMAX8526A_FINGER_SUPPORT_NUM; loop_i++) {
 			if (((finger_pressed >> loop_i) & 1) == 1) {
 				int base = loop_i * 4;
 				int x = buf[base] << 8 | buf[base + 1];
 				int y = (buf[base + 2] << 8 | buf[base + 3]);
 				int w = buf[16 + loop_i];
-				finger_num--;
+
+#ifdef INPUT_PROTOCOL_B
+				input_mt_slot(ts->input_dev, loop_i);
+#endif
+				input_report_abs(ts->input_dev, ABS_MT_TOUCH_MAJOR, w);
+				input_report_abs(ts->input_dev, ABS_MT_WIDTH_MAJOR, w);
+				input_report_abs(ts->input_dev, ABS_MT_POSITION_X, x);
+				input_report_abs(ts->input_dev, ABS_MT_POSITION_Y, y);
+				input_report_abs(ts->input_dev, ABS_MT_PRESSURE, w);
+            input_report_key(ts->input_dev, BTN_TOUCH, 1);
+
+#ifdef INPUT_PROTOCOL_A
 				input_report_abs(ts->input_dev, ABS_MT_TRACKING_ID, loop_i);
-				if (!ts->event_htc_enable) {
-					input_report_abs(ts->input_dev, ABS_MT_TOUCH_MAJOR, w);
-					input_report_abs(ts->input_dev, ABS_MT_WIDTH_MAJOR, w);
-					input_report_abs(ts->input_dev, ABS_MT_POSITION_X, x);
-					input_report_abs(ts->input_dev, ABS_MT_POSITION_Y, y);
-					input_report_abs(ts->input_dev, ABS_MT_PRESSURE, 255);
-                   			input_report_key(ts->input_dev, BTN_TOUCH, 1);
-					input_mt_sync(ts->input_dev);
-				} else {
-					input_report_abs(ts->input_dev, ABS_MT_AMPLITUDE, w << 16 | w);
-					input_report_abs(ts->input_dev, ABS_MT_POSITION,
-						((finger_num ==  0) ? BIT(31) : 0) | x << 16 | y);
-				}
+				input_mt_sync(ts->input_dev);
+#else
+				ts->last_slot = loop_i;
+				input_mt_report_slot_state(ts->input_dev, MT_TOOL_FINGER, 1);
+#endif
 				if (!ts->first_pressed) {
 					ts->first_pressed = 1;
 					printk(KERN_INFO "S1@%d,%d\n", x, y);
 				}
-				if (ts->first_pressed == 1) {
-					ts->pre_finger_data[0] = x;
-					ts->pre_finger_data[1] = y;
-				}
+				ts->pre_finger_data[loop_i][0] = x;
+				ts->pre_finger_data[loop_i][1] = y;
 
-				//if (ts->debug_log_level & 0x2)
+				if (ts->debug_log_level & 0x2)
 					printk(KERN_INFO "Finger %d=> X:%d, Y:%d w:%d, z:%d\n",
 						loop_i + 1, x, y, w, w);
 			}
+#ifdef INPUT_PROTOCOL_B
+			else {
+				input_mt_slot(ts->input_dev, loop_i);
+				input_mt_report_slot_state(ts->input_dev, MT_TOOL_FINGER, 0);
+			}
+#endif
 		}
 	}
-	if (!ts->event_htc_enable)
-		input_sync(ts->input_dev);
+	input_sync(ts->input_dev);
 
 err_workqueue_out:
 	enable_irq(ts->client->irq);
@@ -655,7 +642,7 @@ static irqreturn_t himax_ts_irq_handler(int irq, void *dev_id)
 static void himax_cable_tp_status_handler_func(int connect_status)
 {
 	struct himax_ts_data *ts;
-	printk(KERN_INFO "Touch: cable change to %d\n", connect_status);
+	printk(KERN_INFO "[TS]Touch: cable change to %d\n", connect_status);
 	ts = private_ts;
 	if (ts->cable_config) {
 		if (!ts->suspend_mode) {
@@ -668,13 +655,13 @@ static void himax_cable_tp_status_handler_func(int connect_status)
 			}
 			i2c_himax_master_write(ts->client, ts->cable_config, sizeof(ts->cable_config));
 
-			printk(KERN_INFO "%s: Cable status change: 0x%2.2X\n", __func__, ts->cable_config[1]);
+			printk(KERN_INFO "[TS]%s: Cable status change: 0x%2.2X\n", __func__, ts->cable_config[1]);
 		} else {
 			if (connect_status)
 				ts->usb_connected = 0x01;
 			else
 				ts->usb_connected = 0x00;
-			printk(KERN_INFO "%s: Cable status remembered: 0x%2.2X\n", __func__, ts->usb_connected);
+			printk(KERN_INFO "[TS]%s: Cable status remembered: 0x%2.2X\n", __func__, ts->usb_connected);
 		}
 	}
 }
@@ -700,7 +687,7 @@ static int himax8526a_probe(struct i2c_client *client, const struct i2c_device_i
 
 	ts = kzalloc(sizeof(struct himax_ts_data), GFP_KERNEL);
 	if (ts == NULL) {
-		printk(KERN_ERR "%s: allocate himax_ts_data failed\n", __func__);
+		printk(KERN_ERR "[TS]%s: allocate himax_ts_data failed\n", __func__);
 		err = -ENOMEM;
 		goto err_alloc_data_failed;
 	}
@@ -730,7 +717,6 @@ static int himax8526a_probe(struct i2c_client *client, const struct i2c_device_i
 	}
 	ts->power = pdata->power;
 	ts->pdata = pdata;
-	ts->event_htc_enable = pdata->event_htc_enable;
 
 	i2c_himax_read(ts->client, 0x31, data, 3);
 	i2c_himax_read(ts->client, 0x32, &data[3], 1);
@@ -753,7 +739,7 @@ static int himax8526a_probe(struct i2c_client *client, const struct i2c_device_i
 	ts->input_dev = input_allocate_device();
 	if (ts->input_dev == NULL) {
 		ret = -ENOMEM;
-		dev_err(&client->dev, "Failed to allocate input device\n");
+		dev_err(&client->dev, "[TS] Failed to allocate input device\n");
 		goto err_input_dev_alloc_failed;
 	}
 	ts->input_dev->name = "himax-touchscreen";
@@ -769,7 +755,15 @@ static int himax8526a_probe(struct i2c_client *client, const struct i2c_device_i
 	set_bit(BTN_TOUCH, ts->input_dev->keybit);
 	//set_bit(KEY_APP_SWITCH, ts->input_dev->keybit);
 	set_bit(INPUT_PROP_DIRECT, ts->input_dev->propbit);
-
+	
+#ifdef INPUT_PROTOCOL_A
+	ts->input_dev->mtsize = HIMAX8526A_FINGER_SUPPORT_NUM;
+	input_set_abs_params(ts->input_dev, ABS_MT_TRACKING_ID,
+								0, 3, 0, 0);
+#else
+	set_bit(MT_TOOL_FINGER, ts->input_dev->keybit);
+	input_mt_init_slots(ts->input_dev, HIMAX8526A_FINGER_SUPPORT_NUM);
+#endif
 
 	printk(KERN_INFO "input_set_abs_params: mix_x %d, max_x %d, min_y %d, max_y %d\n",
 		pdata->abs_x_min, pdata->abs_x_max, pdata->abs_y_min, pdata->abs_y_max);
@@ -782,8 +776,8 @@ static int himax8526a_probe(struct i2c_client *client, const struct i2c_device_i
 		pdata->abs_pressure_min, pdata->abs_pressure_max, 0, 0);
 	input_set_abs_params(ts->input_dev, ABS_MT_WIDTH_MAJOR,
 		pdata->abs_width_min, pdata->abs_width_max, 0, 0);
-	input_set_abs_params(ts->input_dev, ABS_MT_TRACKING_ID,
-		0, 0, 0, 0);
+	input_set_abs_params(ts->input_dev, ABS_MT_PRESSURE,
+		pdata->abs_pressure_min, pdata->abs_pressure_max, 0, 0);
 
 	input_set_abs_params(ts->input_dev, ABS_MT_AMPLITUDE,
 		0, ((pdata->abs_pressure_max << 16) | pdata->abs_width_max), 0, 0);
@@ -794,7 +788,7 @@ static int himax8526a_probe(struct i2c_client *client, const struct i2c_device_i
 	ret = input_register_device(ts->input_dev);
 	if (ret) {
 		dev_err(&client->dev,
-			"%s: Unable to register %s input device\n",
+			"[TS]%s: Unable to register %s input device\n",
 			__func__, ts->input_dev->name);
 		goto err_input_register_device_failed;
 	}
