@@ -2,6 +2,7 @@
 #define HIMAX8526a_H
 #include <linux/types.h>
 #include <linux/i2c.h>
+#include <linux/input.h>
 
 #define HIMAX8526A_NAME "Himax8526a"
 #define HIMAX8526A_FINGER_SUPPORT_NUM 4
@@ -80,5 +81,7 @@ struct himax_i2c_platform_data {
 	uint8_t enterLeave[3]; /* 3 parameters */
 	uint8_t averageDistance[5]; /* 5 parameters */
 };
+
+extern void himax_s2w_setinp(struct input_dev *dev);
 #endif
 
