@@ -83,5 +83,6 @@ struct himax_i2c_platform_data {
 };
 
 extern void himax_s2w_setinp(struct input_dev *dev);
+extern void himax_dt2w_setinp(struct input_dev *dev);
 #endif
 

@@ -902,6 +902,21 @@ config TOUCHSCREEN_HIMAX_S2W
 	depends on TOUCHSCREEN_HIMAX
 	default n
 
+config TOUCHSCREEN_HIMAX_S2W_ENABLED
+	bool "Enable Sweep2Wake by default"
+	depends on TOUCHSCREEN_HIMAX_S2W
+	default n
+
+config TOUCHSCREEN_HIMAX_DT2W
+	bool "Himax 8526A DoubleTap2Wake"
+	depends on TOUCHSCREEN_HIMAX
+	default n
+
+config TOUCHSCREEN_HIMAX_DT2W_ENABLED
+	bool "Enable DoubleTap2Wake by default"
+	depends on TOUCHSCREEN_HIMAX_DT2W
+	default n
+
 config TOUCHSCREEN_HIMAX_SH
 	tristate "Secondary Himax 8526A touchscreen"
 	depends on I2C
