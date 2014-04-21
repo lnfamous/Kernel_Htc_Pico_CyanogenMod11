@@ -48,7 +48,11 @@ int force_fast_charge_init(void)
 {
 	int retval;
 
+#if defined(CONFIG_FORCE_FAST_CHARGE_ENABLED)
+	force_fast_charge = 1;
+#else
 	force_fast_charge = 0;
+#endif
 
         force_fast_charge_kobj = kobject_create_and_add("fast_charge", kernel_kobj);
         if (!force_fast_charge_kobj) {
