@@ -30,8 +30,9 @@
 #include <linux/remote_spinlock.h>
 #include <mach/board.h>
 #include <mach/msm_iomap.h>
-#include <asm/mach-types.h>
 #include <mach/socinfo.h>
+#include <asm/mach-types.h>
+#include <asm/cpu.h>
 
 #include "proc_comm.h"
 #include "smd_private.h"
@@ -837,7 +838,15 @@ static int acpuclk_7201_set_rate(int cpu, unsigned long rate,
 		acpuclk_set_div(cur_s);
 		drv_state.current_speed = cur_s;
 		/* Re-adjust lpj for the new clock speed. */
+#ifdef CONFIG_SMP
+		for_each_possible_cpu(cpu) {
+			per_cpu(cpu_data, cpu).loops_per_jiffy =
+							cur_s->lpj;
+		}
+#endif
+		/* Adjust the global one */
 		loops_per_jiffy = cur_s->lpj;
+
 		mb();
 		udelay(50);
 	}
@@ -1095,15 +1104,24 @@ static unsigned long __init find_wait_for_irq_khz(void)
 	return found_khz;
 }
 
-/* Initalize the lpj field in the acpu_freq_tbl. */
 static void __init lpj_init(void)
 {
-	int i;
+	int i = 0, cpu;
 	const struct clkctl_acpu_speed *base_clk = drv_state.current_speed;
-	for (i = 0; acpu_freq_tbl[i].a11clk_khz; i++) {
-		acpu_freq_tbl[i].lpj = cpufreq_scale(loops_per_jiffy,
-						base_clk->a11clk_khz,
-						acpu_freq_tbl[i].a11clk_khz);
+	unsigned long loops;
+
+	for_each_possible_cpu(cpu) {
+#ifdef CONFIG_SMP
+		loops = per_cpu(cpu_data, cpu).loops_per_jiffy;
+#else
+		loops = loops_per_jiffy;
+#endif
+		for (i = 0; acpu_freq_tbl[i].a11clk_khz; i++) {
+			acpu_freq_tbl[i].lpj = cpufreq_scale(
+				loops,
+				base_clk->a11clk_khz,
+				acpu_freq_tbl[i].a11clk_khz);
+		}
 	}
 }
 
