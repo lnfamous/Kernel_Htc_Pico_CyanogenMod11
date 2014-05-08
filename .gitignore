@@ -92,3 +92,4 @@ boot.img
 workspace/*
 push_source
 *.zip
+releases/*
