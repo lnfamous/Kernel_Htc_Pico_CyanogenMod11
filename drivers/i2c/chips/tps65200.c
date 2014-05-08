@@ -34,6 +34,10 @@
 #include <linux/ds2746_battery.h>
 #endif
 
+#ifdef CONFIG_FORCE_FAST_CHARGE
+#include <linux/fastchg.h>
+#endif
+
 #if defined(CONFIG_MACH_HOLIDAY)
 #define AC_CURRENT_SWTICH_DELAY_200MS		200
 #define AC_CURRENT_SWTICH_DELAY_100MS		100
@@ -387,6 +391,14 @@ int tps_set_charger_ctrl(u32 ctl)
 
 	if (tps65200_initial < 0)
 		return 0;
+
+#ifdef CONFIG_FORCE_FAST_CHARGE
+	if (ctl == POWER_SUPPLY_ENABLE_SLOW_CHARGE) {
+		if (force_fast_charge == 1) {
+			ctl = POWER_SUPPLY_ENABLE_FAST_CHARGE;
+		}
+	}
+#endif
 
 	switch (ctl) {
 	case POWER_SUPPLY_DISABLE_CHARGE:
