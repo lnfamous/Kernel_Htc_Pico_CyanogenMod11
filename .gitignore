@@ -93,3 +93,5 @@ workspace/*
 push_source
 *.zip
 releases/*
+stdout.log
+stderr.log
