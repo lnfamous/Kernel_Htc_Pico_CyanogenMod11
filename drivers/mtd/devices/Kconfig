@@ -51,7 +51,7 @@ config MTD_MS02NV
 
 config MTD_MSM_NAND
 	tristate "MSM NAND Device Support"
-	depends on MTD && ARCH_MSM
+	depends on MTD && ARCH_MSM && MTD_NAND
 	select CRC16
 	select BITREVERSE
 	select MTD_NAND_IDS
