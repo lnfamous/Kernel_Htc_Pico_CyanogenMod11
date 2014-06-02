@@ -2,6 +2,7 @@
  *
  * Copyright (C) 2011 HTC Corporation.
  * Copyright (C) 2013 TeamHackLG
+ * Copyright (C) 2014 TeamCody
  *
  * This software is licensed under the terms of the GNU General Public
  * License version 2, as published by the Free Software Foundation, and
@@ -31,6 +32,12 @@
 #ifdef CONFIG_TOUCHSCREEN_HIMAX_DT2W
 #include <linux/ktime.h>
 #include <linux/input/doubletap2wake.h>
+#endif
+
+#ifdef CONFIG_INPUT_CAPELLA_CM3628_POCKETMOD
+#include <linux/pl_sensor.h>
+#define HIMAX_PKT_MOD
+static int device_is_pocketed();
 #endif
 
 #ifdef ABS_MT_SLOT
@@ -111,6 +118,13 @@ static int dt2w_switch = 0;
 static cputime64_t dt2w_time[2] = {0, 0};
 static unsigned int dt2w_x[2] = {0, 0};
 static unsigned int dt2w_y[2] = {0, 0};
+#endif
+#ifdef HIMAX_PKT_MOD
+#ifdef CONFIG_TOUCHSCREEN_HIMAX_POCKETMOD_ENABLED
+static int pocket_mod_switch = 1;
+#else
+static int pocket_mod_switch = 0;
+#endif // HIMAX_POCKETMOD_ENABLED
 #endif
 
 int i2c_himax_read(struct i2c_client *client, uint8_t command, uint8_t *data, uint8_t length)
@@ -523,7 +537,16 @@ void himax_s2w_power(struct work_struct *himax_s2w_power_work) {
 static DECLARE_WORK(himax_s2w_power_work, himax_s2w_power);
 
 void himax_s2w_func(int x) {
-	//printk(KERN_INFO "[TS][S2W]%s: %d", __func__, x);
+
+#ifdef HIMAX_PKT_MOD
+	if (!(is_screen_on)) {
+		if (device_is_pocketed()) {
+			printk(KERN_INFO "[TS][S2W]%s: device is pocketed", __func__);
+			return;
+		}
+	}
+#endif
+
 	if (!himax_s2w_status()) {
 		private_ts->s2w_touched = 1;
 		private_ts->s2w_x_pos = x;
@@ -582,10 +605,20 @@ void himax_dt2w_power(struct work_struct *himax_dt2w_power_work) {
 static DECLARE_WORK(himax_dt2w_power_work, himax_dt2w_power);
 
 static void dt2w_func(int x, int y) {
+
 	if (is_screen_on) {
 		printk(KERN_INFO "%s: screen is on!\n", __func__);
 		return;
 	}
+
+#ifdef HIMAX_PKT_MOD
+	if (!(is_screen_on)) {
+		if (device_is_pocketed()) {
+			printk(KERN_INFO "[TS][S2W]%s: device is pocketed", __func__);
+			return;
+		}
+	}
+#endif
 
 	if (((abs(dt2w_x[0]))==0) && ((abs(dt2w_x[1]))==0)) {
 		dt2w_x[0] = x;
@@ -619,6 +652,38 @@ static void dt2w_func(int x, int y) {
 		dt2w_y[1] = 0; dt2w_y[0] = 0;
 		return;
 	}
+}
+#endif
+
+#ifdef CONFIG_INPUT_CAPELLA_CM3628_POCKETMOD
+static ssize_t himax_pkt_mod_show(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{
+	size_t count = 0;
+	count += sprintf(buf, "%d\n", pocket_mod_switch);
+	return count;
+}
+
+static ssize_t himax_pkt_mod_set(struct device *dev,
+		struct device_attribute *attr, const char *buf, size_t count)
+{
+	if (buf[0] == '1')
+		pocket_mod_switch = 1;
+	else
+		pocket_mod_switch = 0;
+	return count;
+}
+
+static DEVICE_ATTR(pkt_mod_switch, (S_IWUSR|S_IRUGO),
+	himax_pkt_mod_show, himax_pkt_mod_set);
+
+static int device_is_pocketed() {
+	if (!(is_screen_on))
+		if (pocket_mod_switch)
+			return pocket_detection_check();
+
+	printk(KERN_INFO "[TS][S2W]%s: screen is on", __func__);
+	return 0;
 }
 #endif
 
@@ -674,6 +739,13 @@ static int himax_touch_sysfs_init(void)
 		return ret;
 	}
 #endif
+#ifdef HIMAX_PKT_MOD
+	ret = sysfs_create_file(android_touch_kobj, &dev_attr_pkt_mod_switch.attr);
+	if (ret) {
+		printk(KERN_ERR "[TS]%s: sysfs_create_file pocketmodswitch failed\n", __func__);
+		return ret;
+	}
+#endif
 
 	return 0 ;
 }
@@ -690,6 +762,9 @@ static void himax_touch_sysfs_deinit(void)
 #endif
 #ifdef HIMAX_DT2W
 	sysfs_remove_file(android_touch_kobj, &dev_attr_dt2wswitch.attr);
+#endif
+#ifdef HIMAX_PKT_MOD
+	sysfs_remove_file(android_touch_kobj, &dev_attr_pkt_mod_switch.attr);
 #endif
 	kobject_del(android_touch_kobj);
 }
