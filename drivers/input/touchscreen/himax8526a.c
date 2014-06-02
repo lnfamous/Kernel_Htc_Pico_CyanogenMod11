@@ -31,7 +31,9 @@
 #include <asm/atomic.h>
 #ifdef CONFIG_TOUCHSCREEN_HIMAX_DT2W
 #include <linux/ktime.h>
-#include <linux/input/doubletap2wake.h>
+#endif
+#if defined(CONFIG_TOUCHSCREEN_HIMAX_DT2W) || defined(CONFIG_TOUCHSCREEN_HIMAX_S2W)
+#include <linux/input/sdt2wake.h>
 #endif
 
 #ifdef CONFIG_INPUT_CAPELLA_CM3628_POCKETMOD
