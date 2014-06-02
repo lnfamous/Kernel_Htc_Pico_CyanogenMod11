@@ -118,7 +118,7 @@ struct cm3628_platform_data {
 	uint8_t *mapping_table;
 	uint8_t mapping_size;
 	uint8_t ps_base_index;
-	uint8_t enable_polling_ignore;
+	uint8_t dynamical_threshold;
 	uint8_t ps_thd_no_cal;
 	uint8_t ps_thd_with_cal;
 	uint8_t is_cmd;
