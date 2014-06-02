@@ -1,6 +1,7 @@
 /* drivers/i2c/chips/cm3628.c - cm3628 optical sensors driver
  *
  * Copyright (C) 2010 HTC, Inc.
+ * Copyright (C) 2014 TeamCody
  *
  * This software is licensed under the terms of the GNU General Public
  * License version 2, as published by the Free Software Foundation, and
@@ -38,13 +39,12 @@
 #include <linux/jiffies.h>
 #include <mach/board.h>
 
-
 #define D(x...) pr_info(x)
 
 #define I2C_RETRY_COUNT 10
 
 #define POLLING_PROXIMITY 1
-#define NO_IGNORE_BOOT_MODE 1
+#define MFG_MODE 1
 
 #define NEAR_DELAY_TIME ((100 * HZ) / 1000)
 
@@ -52,7 +52,7 @@
 #define POLLING_DELAY		200
 #define TH_ADD			3
 #endif
-static int record_init_fail = 0;
+
 static void sensor_irq_do_work(struct work_struct *work);
 static DECLARE_WORK(sensor_irq_work, sensor_irq_do_work);
 
@@ -64,39 +64,34 @@ static DECLARE_DELAYED_WORK(polling_work, polling_do_work);
 static void report_near_do_work(struct work_struct *w);
 static DECLARE_DELAYED_WORK(report_near_work, report_near_do_work);
 
+static int record_init_fail = 0;
+#ifdef CONFIG_INPUT_CAPELLA_CM3628_POCKETMOD
+static int ps_near;
+#endif
+
 struct cm3628_info {
 	struct class *cm3628_class;
 	struct device *ls_dev;
 	struct device *ps_dev;
-
 	struct input_dev *ls_input_dev;
 	struct input_dev *ps_input_dev;
-
 	struct early_suspend early_suspend;
 	struct i2c_client *i2c_client;
 	struct workqueue_struct *lp_wq;
-
+	struct wake_lock ps_wake_lock;
 	int intr_pin;
-
 	int als_enable;
-
 	int ps_enable;
 	int ps_irq_flag;
 	int led;
-
 	uint16_t *adc_table;
 	uint16_t cali_table[10];
 	int irq;
-
 	int ls_calibrate;
-
 	int (*power)(int, uint8_t); /* power to the chip */
-
 	uint32_t als_kadc;
 	uint32_t als_gadc;
 	uint16_t golden_adc;
-
-	struct wake_lock ps_wake_lock;
 	int psensor_opened;
 	int lightsensor_opened;
 	uint16_t ALS_slave_address;
@@ -112,17 +107,15 @@ struct cm3628_info {
 	uint8_t ps_calibration_rule;/*for saga*/
 	uint8_t ps_conf1_val;
 	int ps_pocket_mode;
-
 	unsigned long j_start;
 	unsigned long j_end;
 	int mfg_mode;
-
 	uint8_t *mapping_table;
 	uint8_t mapping_size;
 	uint8_t ps_base_index;
 	uint8_t ps_thd_no_cal;
 	uint8_t ps_thd_with_cal;
-	uint8_t enable_polling_ignore;
+	uint8_t dynamical_threshold;
 	uint8_t is_cmd;
 	uint8_t ps_adc_offset;
 	uint8_t ps_adc_offset2;
@@ -149,12 +142,6 @@ static int I2C_RxData(uint16_t slaveAddr, uint8_t *rxData, int length)
 	struct cm3628_info *lpi = lp_info;
 
 	struct i2c_msg msgs[] = {
-		/*{
-		 .addr = lp_info->i2c_client->addr,
-		 .flags = 0,
-		 .len = 1,
-		 .buf = rxData,
-		 },*/
 		{
 		 .addr = slaveAddr,
 		 .flags = I2C_M_RD,
@@ -171,7 +158,7 @@ static int I2C_RxData(uint16_t slaveAddr, uint8_t *rxData, int length)
 		val = gpio_get_value(lpi->intr_pin);
 		/*check intr GPIO when i2c error*/
 		if (loop_i == 0 || loop_i == I2C_RETRY_COUNT -1)
-			D("[PS][CM3628 error] %s, i2c err, slaveAddr 0x%x ISR gpio %d  = %d, record_init_fail %d \n",
+			D("[PS][CM3628 warning] %s, i2c err, slaveAddr 0x%x ISR gpio %d  = %d, record_init_fail %d \n",
 				__func__, slaveAddr, lpi->intr_pin, val, record_init_fail);
 
 		msleep(10);
@@ -206,7 +193,7 @@ static int I2C_TxData(uint16_t slaveAddr, uint8_t *txData, int length)
 		val = gpio_get_value(lpi->intr_pin);
 		/*check intr GPIO when i2c error*/
 		if (loop_i == 0 || loop_i == I2C_RETRY_COUNT -1)
-			D("[PS][CM3628 error] %s, i2c err, slaveAddr 0x%x, register 0x%x, value 0x%x, ISR gpio%d  = %d, record_init_fail %d\n",
+			D("[PS][CM3628 warning] %s, i2c err, slaveAddr 0x%x, register 0x%x, value 0x%x, ISR gpio%d  = %d, record_init_fail %d\n",
 				__func__, slaveAddr, txData[0], txData[1], lpi->intr_pin, val, record_init_fail);
 
 		msleep(10);
@@ -395,25 +382,18 @@ static void report_psensor_input_event(struct cm3628_info *lpi, int interrupt_fl
 	int val, ret = 0;
 
 	if (interrupt_flag == 1 && lpi->ps_enable == 0) {
-	/*P-sensor disable but interrupt occur. It might init fail when power on.workaround: reinit*/
-		D("[PS][CM3628] proximity err, ps_enable %d, but intrrupt occur, record_init_fail %d, interrupt_flag %d\n",
-			lpi->ps_enable, record_init_fail, interrupt_flag);
-/*
-		 _cm3628_I2C_Write_Byte(lpi->PS_slave_address,
-		PS_cmd_cmd, 0x00);
-		psensor_initial_cmd(lpi);
-		_cm3628_I2C_Write_Byte(lpi->PS_slave_address,
-			PS_cmd_cmd,
-			lpi->ps_conf1_val |CM3628_PS_SD);*/
+		D("[PS][cm3629] P-sensor disable but intrrupt occur, "
+		  "record_init_fail %d.\n", record_init_fail);
 		return;
 	}
-	if (lpi->ps_debounce == 1 &&
-		lpi->mfg_mode != NO_IGNORE_BOOT_MODE)
+
+	if (lpi->ps_debounce == 1 && lpi->mfg_mode != MFG_MODE)
 		cancel_delayed_work(&report_near_work);
 
 	lpi->j_end = jiffies;
-	/*D("%s: j_end = %lu", __func__, lpi->j_end);*/
+
 	ret = get_ps_adc_value(&ps_data);/*check i2c result*/
+
 	if (ret == 0) {
 		val = (ps_data >= lpi->ps_thd_set) ? 0 : 1;
 	} else {/*i2c err, report far to workaround*/
@@ -422,9 +402,16 @@ static void report_psensor_input_event(struct cm3628_info *lpi, int interrupt_fl
 		D("[PS][CM3628] proximity i2c err, report %s, ps_data=%d, record_init_fail %d\n",
 			val ? "FAR" : "NEAR", ps_data, record_init_fail);
 	}
-	if (lpi->ps_debounce == 1 &&
-		lpi->mfg_mode != NO_IGNORE_BOOT_MODE) {
+
+	if (lpi->ps_debounce == 1 && lpi->mfg_mode != MFG_MODE) {
 		if (val == 0) {
+			if (lpi->dynamical_threshold == 1 &&
+						time_before(lpi->j_end, (lpi->j_start + NEAR_DELAY_TIME))) {
+				lpi->ps_pocket_mode = 1;
+				blocking_notifier_call_chain(&psensor_notifier_list, val+2, NULL);
+				D("[PS][CM3628] Ignore NEAR event\n");
+				return;
+			}
 			D("[PS][CM3628] delay proximity %s, ps_data=%d\n", val ? "FAR" : "NEAR", ps_data);
 			queue_delayed_work(lpi->lp_wq, &report_near_work,
 				msecs_to_jiffies(lpi->ps_delay_time));
@@ -436,18 +423,23 @@ static void report_psensor_input_event(struct cm3628_info *lpi, int interrupt_fl
 		}
 	}
 	D("[PS][CM3628] proximity %s, ps_data=%d\n", val ? "FAR" : "NEAR", ps_data);
-	if ((lpi->enable_polling_ignore == 1) && (val == 0) &&
-		(lpi->mfg_mode != NO_IGNORE_BOOT_MODE) &&
+
+#ifdef CONFIG_INPUT_CAPELLA_CM3628_POCKETMOD
+	ps_near = !val;
+#endif
+
+	if ((lpi->dynamical_threshold == 1) && (val == 0) &&
+		(lpi->mfg_mode != MFG_MODE) &&
 	    (time_before(lpi->j_end, (lpi->j_start + NEAR_DELAY_TIME)))) {
-		D("[PS][CM3628] Ignore NEAR event\n");
+		blocking_notifier_call_chain(&psensor_notifier_list, val + 2, NULL);
 		lpi->ps_pocket_mode = 1;
+		D("[PS][CM3628] Ignore NEAR event\n");
 	} else {
 		/* 0 is close, 1 is far */
 		input_report_abs(lpi->ps_input_dev, ABS_DISTANCE, val);
 		input_sync(lpi->ps_input_dev);
 		blocking_notifier_call_chain(&psensor_notifier_list, val+2, NULL);
 	}
-
 }
 
 static void enable_als_int(void)/*enable als interrupt*/
@@ -749,6 +741,8 @@ static int psensor_enable(struct cm3628_info *lpi)
 	D("[PS][CM3628] %s\n", __func__);
 	if (lpi->ps_enable) {
 		D("[PS][CM3628] %s: already enabled\n", __func__);
+		report_psensor_input_event(lpi, 0);
+
 		return 0;
 	}
 	blocking_notifier_call_chain(&psensor_notifier_list, 1, NULL);
@@ -761,8 +755,7 @@ static int psensor_enable(struct cm3628_info *lpi)
 
 	psensor_initial_cmd(lpi);
 
-	if (lpi->enable_polling_ignore == 1 &&
-		lpi->mfg_mode != NO_IGNORE_BOOT_MODE) {
+	if (lpi->dynamical_threshold == 1 && lpi->mfg_mode != MFG_MODE) {
 		/* default report FAR */
 		input_report_abs(lpi->ps_input_dev, ABS_DISTANCE, 1);
 		input_sync(lpi->ps_input_dev);
@@ -778,23 +771,27 @@ static int psensor_enable(struct cm3628_info *lpi)
 		pr_err(
 			"[PS][CM3628 error]%s: fail to enable irq %d as wake interrupt\n",
 			__func__, lpi->irq);
+
 		return ret;
 	}
 
 #ifdef POLLING_PROXIMITY
-	if (lpi->enable_polling_ignore == 1) {
-		if (lpi->mfg_mode != NO_IGNORE_BOOT_MODE) {
-			ret = get_stable_ps_adc_value(&ps_adc);
-			D("[PS][CM3628] INITIAL ps_adc = 0x%02X", ps_adc);
-			if ((ret == 0) && (lpi->mapping_table != NULL) &&
-			    ((ps_adc >= lpi->ps_thd_set - 1)))
-				queue_delayed_work(lpi->lp_wq, &polling_work,
-					msecs_to_jiffies(POLLING_DELAY));
-		}
+	if (lpi->dynamical_threshold == 1 && lpi->mfg_mode != MFG_MODE) {
+
+		msleep(40);
+		ret = get_stable_ps_adc_value(&ps_adc);
+
+		if ((ret == 0) && (lpi->mapping_table != NULL) &&
+		    ((ps_adc >= lpi->ps_thd_set - 1)))
+			queue_delayed_work(lpi->lp_wq, &polling_work,
+				msecs_to_jiffies(POLLING_DELAY));
 	}
+
 #endif
+
 	return ret;
 }
+
 static int psensor_set_disable(struct cm3628_info *lpi)
 {
 	int ret = -EIO;
@@ -808,6 +805,7 @@ static int psensor_set_disable(struct cm3628_info *lpi)
 		pr_err("[PS][CM3628 error] %s: check_interrupt_add = 0x%03X, add = 0x%x , add>>1 = 0x%x\n",
 			__func__, lpi->check_interrupt_add, add, add>>1);
 	}
+
 	return ret;
 }
 static int psensor_disable(struct cm3628_info *lpi)
@@ -815,14 +813,16 @@ static int psensor_disable(struct cm3628_info *lpi)
 	int ret = -EIO;
 	uint8_t retry_count = 0;
 
-	lpi->ps_pocket_mode = 0;
-	blocking_notifier_call_chain(&psensor_notifier_list, 0, NULL);
-	D("[PS][CM3628] %s\n", __func__);
-	if (!lpi->ps_enable) {
-		D("[PS][CM3628] %s: already disabled\n", __func__);
+	D("[PS][CM3628] %s %d\n", __func__, lpi->ps_enable);
+	if (lpi->ps_enable != 1) {
+		if (lpi->ps_enable > 1)
+			lpi->ps_enable--;
+		else
+			D("[PS][CM3628] %s: already disabled\n", __func__);
 		return 0;
 	}
 
+	lpi->ps_pocket_mode = 0;
 	ret = irq_set_irq_wake(lpi->irq, 0);
 	if (ret < 0) {
 		pr_err(
@@ -830,6 +830,7 @@ static int psensor_disable(struct cm3628_info *lpi)
 			__func__, lpi->irq);
 		return ret;
 	}
+
 	while (1) {
 		ret = psensor_set_disable (lpi);
 		retry_count++;
@@ -837,15 +838,18 @@ static int psensor_disable(struct cm3628_info *lpi)
 			break;
 		}
 	}
+
 	if (ret < 0) {
 		pr_err("[PS][CM3628 error]%s: retry disable psensor fail\n", __func__);
+
 		return ret;
 	}
 
+	blocking_notifier_call_chain(&psensor_notifier_list, 0, NULL);
 	lpi->ps_enable = 0;
 
 #ifdef POLLING_PROXIMITY
-	if (lpi->enable_polling_ignore == 1 && lpi->mfg_mode != NO_IGNORE_BOOT_MODE) {
+	if (lpi->dynamical_threshold == 1 && lpi->mfg_mode != MFG_MODE) {
 		cancel_delayed_work(&polling_work);
 		lpi->ps_base_index = (lpi->mapping_size - 1);
 
@@ -855,6 +859,8 @@ static int psensor_disable(struct cm3628_info *lpi)
 			PS_thd, lpi->ps_thd_set);
 	}
 #endif
+	lpi->ps_enable = 0;
+
 	return ret;
 }
 
@@ -1008,10 +1014,10 @@ static int lightsensor_enable(struct cm3628_info *lpi)
 		"[LS][CM3628 error]%s: set auto light sensor fail\n",
 		__func__);
 	else {
-		msleep(50);/*wait for 50 ms for the first report adc*/
-		/* report an invalid value first to ensure we
-		* trigger an event when adc_level is zero.
-		*/
+		if (lpi->mfg_mode != MFG_MODE)
+			msleep(160);
+		else
+			msleep(85);
 		input_report_abs(lpi->ls_input_dev, ABS_MISC, -1);
 		input_sync(lpi->ls_input_dev);
 		report_lsensor_input_event(lpi, 1);/*resume, IOCTL and DEVICE_ATTR*/
@@ -1383,7 +1389,7 @@ static ssize_t ps_canc_store(struct device *dev,
 	sscanf(buf, "0x%x", &code);
 
 	D("[PS]%s: store value = 0x%x\n", __func__, code);
-	if ((lpi->mfg_mode == NO_IGNORE_BOOT_MODE) && code == 0 &&
+	if ((lpi->mfg_mode == MFG_MODE) && code == 0 &&
 		lpi->ps_reset_thd) {
 		lpi->ps_thd_set = 0xFE;
 		D("[PS]%s: change ps_thd_set = 0x%x for calibration\n", __func__, lpi->ps_thd_set);
@@ -1435,7 +1441,7 @@ static ssize_t ps_hw_store(struct device *dev,
 		lpi->ps_adc_offset = ps_offset_adc;
 		lpi->ps_adc_offset2 = ps_offset_adc2;
 		psensor_intelligent_cancel_cmd(lpi);
-		if ((lpi->mfg_mode == NO_IGNORE_BOOT_MODE) && lpi->ps_reset_thd) {
+		if ((lpi->mfg_mode == MFG_MODE) && lpi->ps_reset_thd) {
 			lpi->ps_thd_set = lpi->ps_thd_with_cal;
 			_cm3628_I2C_Write_Byte(lpi->PS_slave_address,
 			PS_thd,	lpi->ps_thd_set);
@@ -1815,6 +1821,28 @@ check_interrupt_gpio:
 	return 0;
 }
 
+#ifdef CONFIG_INPUT_CAPELLA_CM3628_POCKETMOD
+int pocket_detection_check(void)
+{
+	struct cm3628_info *lpi = lp_info;
+
+	uint8_t ps_adc = 0;
+
+	psensor_enable(lpi);
+
+	//@thewisenerd: msleep causes frugging gpio i/o errors
+	//				todo: fix that.
+	msleep(1);
+
+	get_ps_adc_value(&ps_adc);
+
+	printk("[CM3628] %s ps_adc = %d, ps_near = %d\n", __func__, ps_adc, ps_near);
+
+	psensor_disable(lpi);
+
+	return (ps_near && ps_adc);
+}
+#endif
 
 static int cm3628_setup(struct cm3628_info *lpi)
 {
@@ -1941,7 +1969,7 @@ static int cm3628_probe(struct i2c_client *client,
 	lpi->mapping_table = pdata->mapping_table;
 	lpi->mapping_size = pdata->mapping_size;
 	lpi->ps_base_index = (pdata->mapping_size - 1);
-	lpi->enable_polling_ignore = pdata->enable_polling_ignore;
+	lpi->dynamical_threshold = pdata->dynamical_threshold;
 	lpi->ps_thd_no_cal = pdata->ps_thd_no_cal;
 	lpi->ps_thd_with_cal  = pdata->ps_thd_with_cal;
 	lpi->is_cmd  = pdata->is_cmd;
@@ -1996,7 +2024,7 @@ static int cm3628_probe(struct i2c_client *client,
 	psensor_set_kvalue(lpi);
 
 #ifdef POLLING_PROXIMITY
-	if (lpi->enable_polling_ignore == 1)
+	if (lpi->dynamical_threshold == 1)
 		lpi->original_ps_thd_set = lpi->ps_thd_set;
 #endif
 	ret = cm3628_setup(lpi);

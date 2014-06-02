@@ -71,6 +71,15 @@ config INPUT_CAPELLA_CM3628
 	  Say Y here to enable the CM3628 Short Distance Proximity
 	  Sensor with Ambient Light Sensor.
 
+config INPUT_CAPELLA_CM3628_POCKETMOD
+	bool "Pocket Mod for Capella CM3628"
+	depends on INPUT_CAPELLA_CM3628
+	help
+	  Say Y if you want to enable Pocket Mod for the Capella
+	  CM3628 driver. This dynamically enables/disables S2W,
+	  DT2W, BLN and similar features on the Himax 8526a
+	  touchscreen sensor
+
 config INPUT_CAPELLA_CM3629
 	tristate "CM3629 proximity and light sensor"
 	help
