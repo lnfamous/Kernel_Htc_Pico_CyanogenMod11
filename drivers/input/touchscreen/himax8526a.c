@@ -32,14 +32,8 @@
 #ifdef CONFIG_TOUCHSCREEN_HIMAX_DT2W
 #include <linux/ktime.h>
 #endif
-#if defined(CONFIG_TOUCHSCREEN_HIMAX_DT2W) || defined(CONFIG_TOUCHSCREEN_HIMAX_S2W)
+#if defined(CONFIG_TOUCHSCREEN_HIMAX_DT2W) || defined(CONFIG_TOUCHSCREEN_HIMAX_S2W) || defined(CONFIG_GENERIC_BLN) || defined(CONFIG_INPUT_CAPELLA_CM3628_POCKETMOD)
 #include <linux/input/sdt2wake.h>
-#endif
-
-#ifdef CONFIG_INPUT_CAPELLA_CM3628_POCKETMOD
-#include <linux/pl_sensor.h>
-#define HIMAX_PKT_MOD
-static int device_is_pocketed();
 #endif
 
 #ifdef ABS_MT_SLOT
@@ -121,12 +115,16 @@ static cputime64_t dt2w_time[2] = {0, 0};
 static unsigned int dt2w_x[2] = {0, 0};
 static unsigned int dt2w_y[2] = {0, 0};
 #endif
-#ifdef HIMAX_PKT_MOD
+#ifdef CONFIG_INPUT_CAPELLA_CM3628_POCKETMOD
+#define HIMAX_PKT_MOD
 #ifdef CONFIG_TOUCHSCREEN_HIMAX_POCKETMOD_ENABLED
 static int pocket_mod_switch = 1;
 #else
 static int pocket_mod_switch = 0;
 #endif // HIMAX_POCKETMOD_ENABLED
+int get_pocket_mod_switch_val(void) {
+	return pocket_mod_switch;
+}
 #endif
 
 int i2c_himax_read(struct i2c_client *client, uint8_t command, uint8_t *data, uint8_t length)
@@ -679,14 +677,6 @@ static ssize_t himax_pkt_mod_set(struct device *dev,
 static DEVICE_ATTR(pkt_mod_switch, (S_IWUSR|S_IRUGO),
 	himax_pkt_mod_show, himax_pkt_mod_set);
 
-static int device_is_pocketed() {
-	if (!(is_screen_on))
-		if (pocket_mod_switch)
-			return pocket_detection_check();
-
-	printk(KERN_INFO "[TS][S2W]%s: screen is on", __func__);
-	return 0;
-}
 #endif
 
 static struct kobject *android_touch_kobj;

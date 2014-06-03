@@ -66,6 +66,7 @@ static DECLARE_DELAYED_WORK(report_near_work, report_near_do_work);
 
 static int record_init_fail = 0;
 #ifdef CONFIG_INPUT_CAPELLA_CM3628_POCKETMOD
+#include <linux/input/sdt2wake.h>
 static int ps_near;
 #endif
 
