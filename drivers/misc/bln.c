@@ -2,8 +2,8 @@
  *
  * Copyright 2011  Michael Richter (alias neldar)
  * Copyright 2011  Adam Kent <adam@semicircular.net>
- * Copyright 2014  Jonathan Jason Dennis [Meticulus]
-			theonejohnnyd@gmail.com
+ * Copyright 2014  Jonathan Jason Dennis [Meticulus] <theonejohnnyd@gmail.com>
+ * Copyright 2014  Vineeth Raj (alias thewisenerd) <contact.twn@opmbx.org>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
@@ -29,6 +29,7 @@ static bool bln_ongoing = false; /* ongoing LED Notification */
 static int bln_blink_state = 0;
 static int bln_blink_mode = 1; /* blink by default */
 static bool bln_suspended = false; /* is system suspended */
+static unsigned int bln_blink_interval = 1000;
 static struct bln_implementation *bln_imp = NULL;
 
 static long unsigned int notification_led_mask = 0x0;
@@ -42,7 +43,7 @@ static struct wake_lock bln_wake_lock;
 static bool buttons_led_enabled = false;
 #endif
 
-#define BACKLIGHTNOTIFICATION_VERSION 9
+#define BACKLIGHTNOTIFICATION_VERSION 10
 
 static int gen_all_leds_mask(void)
 {
@@ -124,9 +125,9 @@ static void blink_thread(void)
 	while(bln_suspended)
 	{
 		bln_enable_backlights(get_led_mask());
-		msleep(1000);
+		msleep(bln_blink_interval);
 		bln_disable_backlights(get_led_mask());
-		msleep(1000);
+		msleep(bln_blink_interval);
 	}
 }
 
@@ -219,6 +220,41 @@ static ssize_t backlightnotification_status_write(struct device *dev,
 	}
 
 	return size;
+}
+
+static ssize_t backlightnotification_interval_read(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{
+
+	size_t count = 0;
+	count += sprintf(buf, "%u\n", bln_blink_interval);
+
+	pr_info("%s: read:interval val is %u \n", __FUNCTION__, bln_blink_interval);
+
+	return count;
+
+}
+
+
+static ssize_t backlightnotification_interval_write(struct device *dev,
+		struct device_attribute *attr, const char *buf, size_t count)
+{
+
+	unsigned int ret = 1000;
+
+	sscanf(buf, "%u\n", &ret);
+
+	//100ms is good enough a val, i guess
+	//TODO: check for any gpio i/o errors with 100 ms
+	if ( ret >= 100 ) {
+		bln_blink_interval = ret;
+		pr_info("%s: write:interval val is %u \n", __FUNCTION__, ret);
+	} else {
+		bln_blink_interval = 1000;
+		pr_info("%s: invalid interval val; reverting to 1000ms\n", __FUNCTION__);
+	}
+
+	return count;
 }
 
 static ssize_t notification_led_status_read(struct device *dev,
@@ -400,6 +436,9 @@ static DEVICE_ATTR(blink_control, S_IRUGO | S_IWUGO, blink_control_read,
 static DEVICE_ATTR(enabled, S_IRUGO | S_IWUGO,
 		backlightnotification_status_read,
 		backlightnotification_status_write);
+static DEVICE_ATTR(interval, S_IRUGO | S_IWUGO,
+		backlightnotification_interval_read,
+		backlightnotification_interval_write);
 static DEVICE_ATTR(led_count, S_IRUGO , led_count_read, NULL);
 static DEVICE_ATTR(notification_led, S_IRUGO | S_IWUGO,
 		notification_led_status_read,
@@ -417,6 +456,7 @@ static DEVICE_ATTR(wakelock, S_IRUGO | S_IWUGO, wakelock_read, wakelock_write);
 static struct attribute *bln_notification_attributes[] = {
 	&dev_attr_blink_control.attr,
 	&dev_attr_enabled.attr,
+	&dev_attr_interval.attr,
 	&dev_attr_led_count.attr,
 	&dev_attr_notification_led.attr,
 	&dev_attr_notification_led_mask.attr,
