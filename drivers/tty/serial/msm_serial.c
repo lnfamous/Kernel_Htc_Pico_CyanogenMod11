@@ -2,7 +2,7 @@
  * drivers/serial/msm_serial.c - driver for msm7k serial device and console
  *
  * Copyright (C) 2007 Google, Inc.
- * Copyright (c) 2009-2011, Code Aurora Forum. All rights reserved.
+ * Copyright (c) 2009-2011, The Linux Foundation. All rights reserved.
  * Author: Robert Love <rlove@google.com>
  *
  * This software is licensed under the terms of the GNU General Public
@@ -36,7 +36,6 @@
 #include <linux/platform_device.h>
 #include <linux/pm_runtime.h>
 #include <mach/msm_serial_pdata.h>
-#include <mach/board_htc.h>
 #include "msm_serial.h"
 
 
@@ -75,8 +74,6 @@ struct msm_port {
 	struct msm_wakeup wakeup;
 #endif
 };
-
-static int msm_serial_enable;
 
 #define UART_TO_MSM(uart_port)	((struct msm_port *) uart_port)
 #define is_console(port)	((port)->cons && \
@@ -573,10 +570,6 @@ static int msm_startup(struct uart_port *port)
 	if (unlikely(ret))
 		return ret;
 
-	if (unlikely(irq_set_irq_wake(port->irq, 1))) {
-		free_irq(port->irq, port);
-		return -ENXIO;
-	}
 
 #ifndef CONFIG_PM_RUNTIME
 	msm_init_clock(port);
@@ -1161,12 +1154,6 @@ static struct platform_driver msm_platform_driver = {
 static int __init msm_serial_init(void)
 {
 	int ret;
-		/* Switch Uart Debug by Kernel Flag  */
-	if (get_kernel_flag() & KERNEL_FLAG_SERIAL_HSL_ENABLE)
-		msm_serial_enable = 1;
-
-	if (!msm_serial_enable)
-		msm_uart_driver.cons = NULL;
 
 	ret = uart_register_driver(&msm_uart_driver);
 	if (unlikely(ret))
@@ -1184,8 +1171,7 @@ static int __init msm_serial_init(void)
 static void __exit msm_serial_exit(void)
 {
 #ifdef CONFIG_SERIAL_MSM_CONSOLE
-	if (msm_serial_enable)
-		unregister_console(&msm_console);
+	unregister_console(&msm_console);
 #endif
 	platform_driver_unregister(&msm_platform_driver);
 	uart_unregister_driver(&msm_uart_driver);
