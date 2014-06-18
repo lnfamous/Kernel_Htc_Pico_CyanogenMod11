@@ -517,7 +517,7 @@ EXPORT_SYMBOL(himax_s2w_setinp);
 
 void himax_s2w_release() {
 	private_ts->s2w_touched = 0;
-	printk(KERN_INFO "[TS][S2W]%s: Sweep2Wake Released", __func__);
+	printk(KERN_INFO "[TS][S2W]%s: Sweep2Wake Released\n", __func__);
 }
 
 int himax_s2w_status() {
@@ -531,7 +531,7 @@ void himax_s2w_power(struct work_struct *himax_s2w_power_work) {
 	input_event(sweep2wake_pwrdev, EV_KEY, KEY_POWER, 0);
 	input_event(sweep2wake_pwrdev, EV_SYN, 0, 0);
 	msleep(100);
-	printk(KERN_INFO "[TS][S2W]%s: Turn it on", __func__);
+	printk(KERN_INFO "[TS][S2W]%s: Turn it on\n", __func__);
 	himax_s2w_release();
 }
 static DECLARE_WORK(himax_s2w_power_work, himax_s2w_power);
@@ -598,9 +598,9 @@ void himax_dt2w_power(struct work_struct *himax_dt2w_power_work) {
 	input_event(doubletap2wake_pwrdev, EV_SYN, 0, 0);
 	msleep(100);
 	if (is_screen_on)
-		printk(KERN_INFO "[TS][DT2W]%s: Turn it off", __func__);
+		printk(KERN_INFO "[TS][DT2W]%s: Turn it off\n", __func__);
 	else
-		printk(KERN_INFO "[TS][DT2W]%s: Turn it on", __func__);
+		printk(KERN_INFO "[TS][DT2W]%s: Turn it on\n", __func__);
 }
 static DECLARE_WORK(himax_dt2w_power_work, himax_dt2w_power);
 
@@ -614,7 +614,7 @@ static void dt2w_func(int x, int y) {
 #ifdef HIMAX_PKT_MOD
 	if (!(is_screen_on)) {
 		if (device_is_pocketed()) {
-			printk(KERN_INFO "[TS][S2W]%s: device is pocketed", __func__);
+			printk(KERN_INFO "[TS][S2W]%s: device is pocketed\n", __func__);
 			return;
 		}
 	}
