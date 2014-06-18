@@ -34,10 +34,15 @@
 
 #define HTC_PROCEDURE_SET_VIB_ON_OFF	21
 #define PMIC_VIBRATOR_LEVEL	(3000)
+#define PMIC_VIBRATOR_LEVEL_DEF	PMIC_VIBRATOR_LEVEL
+#define PMIC_VIBRATOR_LEVEL_MAX	3100
+#define PMIC_VIBRATOR_LEVEL_MIN	2100
 
 static struct work_struct work_vibrator_on;
 static struct work_struct work_vibrator_off;
 static struct hrtimer vibe_timer;
+
+static unsigned int pmic_vibrator_level = PMIC_VIBRATOR_LEVEL_DEF;
 
 #ifdef CONFIG_PM8XXX_RPC_VIBRATOR
 static void set_pmic_vibrator(int on)
@@ -51,7 +56,7 @@ static void set_pmic_vibrator(int on)
 	}
 
 	if (on)
-		rc = pmic_vib_mot_set_volt(PMIC_VIBRATOR_LEVEL);
+		rc = pmic_vib_mot_set_volt(pmic_vibrator_level);
 	else
 		rc = pmic_vib_mot_set_volt(0);
 
@@ -146,8 +151,37 @@ static struct timed_output_dev pmic_vibrator = {
 	.enable = vibrator_enable,
 };
 
+static ssize_t voltage_level_get(struct device *dev,
+				struct device_attribute *attr, char *buf)
+{
+	size_t count = 0;
+	count += sprintf(buf, "%u\n", pmic_vibrator_level);
+	return count;
+}
+
+static ssize_t voltage_level_set(struct device *dev,
+		struct device_attribute *attr, const char *buf, size_t count)
+{
+	unsigned int ret = PMIC_VIBRATOR_LEVEL_DEF;
+
+	sscanf(buf, "%u\n", &ret);
+
+	if ( ( ret < PMIC_VIBRATOR_LEVEL_MIN ) || ( ret > PMIC_VIBRATOR_LEVEL_MAX ) )
+		pmic_vibrator_level = PMIC_VIBRATOR_LEVEL_DEF;
+	else
+		pmic_vibrator_level = ret;
+
+	return count;
+}
+
+static DEVICE_ATTR(voltage, S_IRUGO | S_IWUGO,
+		voltage_level_get,
+		voltage_level_set);
+
 void __init msm_init_pmic_vibrator(void)
 {
+	int rc = 0;
+
 	INIT_WORK(&work_vibrator_on, pmic_vibrator_on);
 	INIT_WORK(&work_vibrator_off, pmic_vibrator_off);
 
@@ -155,6 +189,13 @@ void __init msm_init_pmic_vibrator(void)
 	vibe_timer.function = vibrator_timer_func;
 
 	timed_output_dev_register(&pmic_vibrator);
+
+	rc = device_create_file(pmic_vibrator.dev, &dev_attr_voltage);
+
+	if (unlikely(rc < 0)) {
+		pr_err("[VIBR]: device_create_file voltage failed: %d\n", rc);
+	}
+
 }
 
 MODULE_DESCRIPTION("timed output pmic vibrator device");
