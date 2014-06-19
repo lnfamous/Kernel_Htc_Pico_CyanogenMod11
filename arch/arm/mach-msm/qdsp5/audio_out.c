@@ -44,6 +44,10 @@
 
 #include "evlog.h"
 
+#ifdef CONFIG_QDSP5_VOLUME_BOOST_HAX
+#include <linux/volume_boost.h>
+#endif
+
 #define LOG_AUDIO_EVENTS 1
 #define LOG_AUDIO_FAULTS 0
 
@@ -828,6 +832,9 @@ static int audio_open(struct inode *inode, struct file *file)
 	audio->out[1].size = BUFSZ;
 
 	audio->vol_pan.volume = 0x2000;
+#ifdef CONFIG_QDSP5_VOLUME_BOOST_HAX
+	audio->vol_pan.volume = audio->vol_pan.volume + get_vol_boost_val();
+#endif
 	audio->vol_pan.pan = 0x0;
 
 	audio_flush(audio);
