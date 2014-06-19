@@ -1737,6 +1737,14 @@ config MSM7X27A_AUDIO
 	help
 	  Enable support for 7x27a. This provides audio functionality.
 
+config QDSP5_VOLUME_BOOST_HAX
+	bool "volume_boost hax to allow increasing default volume"
+	default n
+	depends on MSM7X27A_AUDIO
+	help
+		Volume boost hax that creates a sysfs toggle, which would help
+		users to increase the default volume levels at the chip level.
+
 config MSM_PROC_COMM_REGULATOR
 	bool
 	depends on MSM_PROC_COMM && REGULATOR
