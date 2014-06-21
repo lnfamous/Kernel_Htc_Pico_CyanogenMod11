@@ -1,5 +1,5 @@
-#ifndef _LINUX_SDT2WAKE_H
-#define _LINUX_SDT2WAKE_H
+#ifndef _LINUX_2WAKE_H
+#define _LINUX_2WAKE_H
 
 extern bool is_screen_on;
 #ifdef CONFIG_INPUT_CAPELLA_CM3628_POCKETMOD
@@ -17,4 +17,4 @@ static int device_is_pocketed() {
 #endif
 
 
-#endif	/* _LINUX_SDT2WAKE_H */
+#endif	/* _LINUX_2WAKE_H */
