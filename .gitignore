@@ -95,3 +95,7 @@ push_source
 releases/*
 stdout.log
 stderr.log
+build_kernel
+push_sdcard.sh
+upload_zImage.sh
+*.diff
