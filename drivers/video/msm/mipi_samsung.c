@@ -17,6 +17,9 @@
 #include "mipi_dsi.h"
 #include "mipi_samsung.h"
 
+#ifdef CONFIG_HIMAX_WAKE_MOD_POCKETMOD
+#include <linux/towake.h>
+#endif
 /* -----------------------------------------------------------------------------
  *                         External routine declaration
  * ----------------------------------------------------------------------------- */
@@ -439,6 +442,9 @@ void mipi_samsung_panel_type_detect(struct mipi_panel_info *mipi)
 
 static int mipi_samsung_lcd_on(struct platform_device *pdev)
 {
+#ifdef CONFIG_HIMAX_WAKE_MOD_POCKETMOD
+	is_screen_on = 1;
+#endif
 	struct msm_fb_data_type *mfd;
 	struct msm_fb_panel_data *pdata = NULL;
 	struct mipi_panel_info *mipi;
@@ -482,6 +488,9 @@ static int mipi_samsung_lcd_on(struct platform_device *pdev)
 
 static int mipi_samsung_lcd_off(struct platform_device *pdev)
 {
+#ifdef CONFIG_HIMAX_WAKE_MOD_POCKETMOD
+	is_screen_on = 0;
+#endif
 	struct msm_fb_data_type *mfd;
 
 	PR_DISP_INFO("%s\n", __func__);

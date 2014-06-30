@@ -26,8 +26,8 @@
 #define LED_BUFF_SIZE 50
 
 
-#ifdef CONFIG_INPUT_CAPELLA_CM3628_POCKETMOD
-#include <linux/input/sdt2wake.h>
+#ifdef CONFIG_HIMAX_WAKE_MOD_POCKETMOD
+#include <linux/towake.h>
 #endif
 
 #ifdef CONFIG_GENERIC_BLN
@@ -38,7 +38,7 @@ struct led_classdev *bln_led_cdev;
 static int led_bln_enable(int led_mask)
 {
 
-#ifdef CONFIG_INPUT_CAPELLA_CM3628_POCKETMOD
+#ifdef CONFIG_HIMAX_WAKE_MOD_POCKETMOD
 	if (!(is_screen_on)) {
 		if (device_is_pocketed()) {
 			printk(KERN_INFO "[LED]%s: device is pocketed", __func__);

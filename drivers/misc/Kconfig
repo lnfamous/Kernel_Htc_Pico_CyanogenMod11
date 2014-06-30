@@ -735,4 +735,43 @@ source "drivers/misc/carma/Kconfig"
 source "drivers/misc/mpu3050/Kconfig"
 source "drivers/misc/ts27010mux_uart/Kconfig"
 
+comment "Himax 8526A Wake Mods"
+
+config HIMAX_WAKE_MODS
+	bool "Generic WakeMods support for Himax 8526A"
+	depends on MACH_PICO && TOUCHSCREEN_HIMAX
+	default y
+	help
+		Say Y here to enable wake mods like Sweep2Wake,
+		DoubleTap2Wake, PocketMod, etc.
+
+config HIMAX_WAKE_MOD_SWEEP2WAKE
+	bool "Sweep2wake for Himax"
+	depends on HIMAX_WAKE_MODS
+	default y
+	help
+		Say Y here to enable Sweep2Wake. Users can always
+		toggle this on/off from sysfs later (should they
+		want it)
+
+config HIMAX_WAKE_MOD_DOUBLETAP2WAKE
+	bool "DoubleTap2wake for Himax"
+	depends on HIMAX_WAKE_MODS
+	default y
+	help
+		Say Y here to enable DoubleTap2Wake. Users can always
+		toggle this on/off from sysfs later (should they
+		want it)
+
+config HIMAX_WAKE_MOD_POCKETMOD
+	bool "PocketMod for Himax"
+	depends on HIMAX_WAKE_MODS && INPUT_CAPELLA_CM3628_POCKETMOD
+	default y
+	help
+		Say Y here to enable PocketMod. Users can always
+		toggle this on/off from sysfs later (should they
+		want it)
+
+comment "Himax 8526A Wake Mods (end)"
+
 endif # MISC_DEVICES

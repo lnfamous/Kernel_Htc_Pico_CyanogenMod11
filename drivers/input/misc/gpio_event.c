@@ -20,9 +20,6 @@
 #include <linux/hrtimer.h>
 #include <linux/platform_device.h>
 #include <linux/slab.h>
-#if defined(CONFIG_TOUCHSCREEN_HIMAX_S2W) || defined(CONFIG_TOUCHSCREEN_HIMAX_DT2W)
-#include <linux/himax8526a.h>
-#endif
 
 struct gpio_event {
 	struct gpio_event_input_devs *input_devs;
@@ -169,18 +166,6 @@ static int gpio_event_probe(struct platform_device *pdev)
 					event_info->name : event_info->names[i];
 		input_dev->event = gpio_input_event;
 		ip->input_devs->dev[i] = input_dev;
-#ifdef CONFIG_TOUCHSCREEN_HIMAX_S2W
-		if (!strcmp(input_dev->name, "pico-keypad")) {
-			himax_s2w_setinp(input_dev);
-			printk(KERN_INFO "[sweep2wake]: set device %s\n", input_dev->name);
-		}
-#endif
-#ifdef CONFIG_TOUCHSCREEN_HIMAX_DT2W
-		if (!strcmp(input_dev->name, "pico-keypad")) {
-			himax_dt2w_setinp(input_dev);
-			printk(KERN_INFO "[doubletap2wake]: set device %s\n", input_dev->name);
-		}
-#endif
 	}
 	ip->input_devs->count = dev_count;
 	ip->info = event_info;

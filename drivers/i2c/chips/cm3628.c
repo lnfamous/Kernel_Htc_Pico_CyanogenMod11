@@ -2,6 +2,7 @@
  *
  * Copyright (C) 2010 HTC, Inc.
  * Copyright (C) 2014 TeamCody
+ * Copyright (C) 2014 Vineeth Raj <contact.twn@opmbx.org>
  *
  * This software is licensed under the terms of the GNU General Public
  * License version 2, as published by the Free Software Foundation, and
@@ -39,6 +40,11 @@
 #include <linux/jiffies.h>
 #include <mach/board.h>
 
+#ifdef CONFIG_INPUT_CAPELLA_CM3628_POCKETMOD
+#include <linux/pocket_mod.h>
+static int ps_near;
+#endif
+
 #define D(x...) pr_info(x)
 
 #define I2C_RETRY_COUNT 10
@@ -65,10 +71,6 @@ static void report_near_do_work(struct work_struct *w);
 static DECLARE_DELAYED_WORK(report_near_work, report_near_do_work);
 
 static int record_init_fail = 0;
-#ifdef CONFIG_INPUT_CAPELLA_CM3628_POCKETMOD
-#include <linux/input/sdt2wake.h>
-static int ps_near;
-#endif
 
 struct cm3628_info {
 	struct class *cm3628_class;

@@ -16,9 +16,8 @@
 #include "msm_fb.h"
 #include "mipi_dsi.h"
 #include "mipi_novatek.h"
-#if defined(CONFIG_TOUCHSCREEN_HIMAX_DT2W) || defined(CONFIG_TOUCHSCREEN_HIMAX_S2W)
-#include <linux/input/sdt2wake.h>
-bool is_screen_on = false;
+#ifdef CONFIG_HIMAX_WAKE_MOD_POCKETMOD
+#include <linux/towake.h>
 #endif
 /* -----------------------------------------------------------------------------
  *                         External routine declaration
@@ -492,8 +491,8 @@ if (panel_type == PANEL_ID_PIO_AUO) {
 
 static int mipi_novatek_lcd_on(struct platform_device *pdev)
 {
-#if defined(CONFIG_TOUCHSCREEN_HIMAX_DT2W) || defined(CONFIG_TOUCHSCREEN_HIMAX_S2W)
-	is_screen_on = true;
+#ifdef CONFIG_HIMAX_WAKE_MOD_POCKETMOD
+	is_screen_on = 1;
 #endif
 	struct msm_fb_data_type *mfd;
 	struct msm_fb_panel_data *pdata = NULL;
@@ -538,8 +537,8 @@ static int mipi_novatek_lcd_on(struct platform_device *pdev)
 
 static int mipi_novatek_lcd_off(struct platform_device *pdev)
 {
-#if defined(CONFIG_TOUCHSCREEN_HIMAX_DT2W) || defined(CONFIG_TOUCHSCREEN_HIMAX_S2W)
-	is_screen_on = false;
+#ifdef CONFIG_HIMAX_WAKE_MOD_POCKETMOD
+	is_screen_on = 0;
 #endif
 	struct msm_fb_data_type *mfd;
 
