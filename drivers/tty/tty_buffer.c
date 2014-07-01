@@ -143,6 +143,12 @@ void tty_buffer_flush(struct tty_struct *tty)
 	if (test_bit(TTY_FLUSHING, &tty->flags)) {
 		set_bit(TTY_FLUSHPENDING, &tty->flags);
 		spin_unlock_irqrestore(&tty->buf.lock, flags);
+#if defined(CONFIG_MSM_SMD0_WQ)
+	if (!strcmp(tty->name, "smd0"))
+/*		queue_delayed_work(tty_wq, &tty->buf.work, 0);*/
+		queue_work(tty_wq, &tty->buf.work);
+	else
+#endif
 		wait_event(tty->read_wait,
 				test_bit(TTY_FLUSHPENDING, &tty->flags) == 0);
 		return;
@@ -495,8 +501,15 @@ void tty_flip_buffer_push(struct tty_struct *tty)
 
 	if (tty->low_latency)
 		flush_to_ldisc(&tty->buf.work);
-	else
+	else {
+#if defined(CONFIG_MSM_SMD0_WQ)
+		if (!strcmp(tty->name, "smd0"))
+/*			queue_delayed_work(tty_wq, &tty->buf.work, 0);*/
+			queue_work(tty_wq, &tty->buf.work);
+		else
+#endif
 		schedule_work(&tty->buf.work);
+	}
 }
 EXPORT_SYMBOL(tty_flip_buffer_push);
 
