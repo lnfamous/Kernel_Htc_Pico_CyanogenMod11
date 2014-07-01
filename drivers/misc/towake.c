@@ -54,8 +54,8 @@ static unsigned doubletap2wake_min_timeout = 40;
 static unsigned doubletap2wake_max_timeout = 400;
 static unsigned doubletap2wake_delta = 50;
 static s64 doubletap2wake_time[2] = {0, 0};
-static unsigned int doubletap2wake_x[2] = {0, 0};
-static unsigned int doubletap2wake_y[2] = {0, 0};
+static unsigned int doubletap2wake_x = 0;
+static unsigned int doubletap2wake_y = 0;
 
 unsigned is_screen_on;
 
@@ -481,16 +481,13 @@ int doubletap2wake_check_n_reset(void) {
 void doubletap2wake_func(int *x, int *y) {
 
 	if ( (doubletap2wake_time[0]) && (!(doubletap2wake_time[1])) ) {
-		doubletap2wake_x[0] = *x;
-		doubletap2wake_y[0] = *y;
+		doubletap2wake_x = *x;
+		doubletap2wake_y = *y;
 		return;
 	}
 
-	doubletap2wake_x[1] = *x;
-	doubletap2wake_y[1] = *y;
-
-	if ((abs((doubletap2wake_x[1]-doubletap2wake_x[0])) < doubletap2wake_delta)
-		&& (abs((doubletap2wake_y[1]-doubletap2wake_y[0])) < doubletap2wake_delta)
+	if ((abs((*x-doubletap2wake_x)) < doubletap2wake_delta)
+		&& (abs((*y-doubletap2wake_y)) < doubletap2wake_delta)
 		) {
 			presspwr();
 	}
