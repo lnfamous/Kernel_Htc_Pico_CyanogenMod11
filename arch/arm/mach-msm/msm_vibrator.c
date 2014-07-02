@@ -35,8 +35,8 @@
 #define HTC_PROCEDURE_SET_VIB_ON_OFF	21
 #define PMIC_VIBRATOR_LEVEL	(3000)
 #define PMIC_VIBRATOR_LEVEL_DEF	PMIC_VIBRATOR_LEVEL
-#define PMIC_VIBRATOR_LEVEL_MAX	3101 //3100 + 1
-#define PMIC_VIBRATOR_LEVEL_MIN	2099 //2100 - 1
+#define PMIC_VIBRATOR_LEVEL_MAX	3100
+#define PMIC_VIBRATOR_LEVEL_MIN	2100
 
 static struct work_struct work_vibrator_on;
 static struct work_struct work_vibrator_off;
@@ -166,15 +166,13 @@ static ssize_t voltage_level_set(struct device *dev,
 
 	sscanf(buf, "%u\n", &ret);
 
-	if ( ( ret > PMIC_VIBRATOR_LEVEL_MIN ) && ( ret < PMIC_VIBRATOR_LEVEL_MAX ) )
+	if (!( ( ret < PMIC_VIBRATOR_LEVEL_MIN ) || ( ret > PMIC_VIBRATOR_LEVEL_MAX ) ))
 		pmic_vibrator_level = ret;
 
 	return count;
 }
 
-static DEVICE_ATTR(voltage, S_IRUGO | S_IWUGO,
-		voltage_level_get,
-		voltage_level_set);
+static DEVICE_ATTR(voltage, 0777, voltage_level_get, voltage_level_set);
 
 void __init msm_init_pmic_vibrator(void)
 {
