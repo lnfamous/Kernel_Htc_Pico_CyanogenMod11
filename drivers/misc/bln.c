@@ -30,6 +30,7 @@ static int bln_blink_state = 0;
 static int bln_blink_mode = 1; /* blink by default */
 static bool bln_suspended = false; /* is system suspended */
 static unsigned int bln_blink_interval = 1000;
+static unsigned bln_count = 25;
 static struct bln_implementation *bln_imp = NULL;
 
 static long unsigned int notification_led_mask = 0x0;
@@ -122,12 +123,18 @@ static struct early_suspend bln_suspend_data = {
 
 static void blink_thread(void)
 {
-	while(bln_suspended)
+	unsigned i = 0;
+	while (bln_suspended)
 	{
 		bln_enable_backlights(get_led_mask());
 		msleep(bln_blink_interval);
 		bln_disable_backlights(get_led_mask());
 		msleep(bln_blink_interval);
+		if (bln_count) {
+			i += 1;
+			if (i == bln_count)
+				break;
+		}
 	}
 }
 
@@ -235,26 +242,39 @@ static ssize_t backlightnotification_interval_read(struct device *dev,
 
 }
 
-
 static ssize_t backlightnotification_interval_write(struct device *dev,
 		struct device_attribute *attr, const char *buf, size_t count)
 {
 
-	unsigned int ret = 1000;
+	unsigned ret = 1000;
 
 	sscanf(buf, "%u\n", &ret);
 
 	//100ms is good enough a val, i guess
 	//TODO: check for any gpio i/o errors with 100 ms
-	if ( ret >= 100 ) {
+	if ( ret >= 100 )
 		bln_blink_interval = ret;
-		pr_info("%s: write:interval val is %u \n", __FUNCTION__, ret);
-	} else {
-		bln_blink_interval = 1000;
-		pr_info("%s: invalid interval val; reverting to 1000ms\n", __FUNCTION__);
-	}
 
 	return count;
+}
+
+static ssize_t backlightnotification_count_get(struct device *dev,
+			struct device_attribute *attr, char *buf)
+{
+    return sprintf(buf, "%u\n", bln_count);
+}
+
+static ssize_t backlightnotification_count_set(struct device * dev,
+		struct device_attribute * attr, const char * buf, size_t size)
+{
+	unsigned val = 0;
+
+	sscanf(buf, "%u\n", &val);
+
+	if (!(val > 500)) //arbitrary!
+		bln_count = val;
+
+	return size;
 }
 
 static ssize_t notification_led_status_read(struct device *dev,
@@ -439,6 +459,9 @@ static DEVICE_ATTR(enabled, S_IRUGO | S_IWUGO,
 static DEVICE_ATTR(interval, S_IRUGO | S_IWUGO,
 		backlightnotification_interval_read,
 		backlightnotification_interval_write);
+static DEVICE_ATTR(count, S_IRUGO | S_IWUGO,
+		backlightnotification_count_get,
+		backlightnotification_count_set);
 static DEVICE_ATTR(led_count, S_IRUGO , led_count_read, NULL);
 static DEVICE_ATTR(notification_led, S_IRUGO | S_IWUGO,
 		notification_led_status_read,
@@ -457,6 +480,7 @@ static struct attribute *bln_notification_attributes[] = {
 	&dev_attr_blink_control.attr,
 	&dev_attr_enabled.attr,
 	&dev_attr_interval.attr,
+	&dev_attr_count.attr,
 	&dev_attr_led_count.attr,
 	&dev_attr_notification_led.attr,
 	&dev_attr_notification_led_mask.attr,
