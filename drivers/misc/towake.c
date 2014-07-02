@@ -47,10 +47,8 @@ unsigned doubletap2wake_switch = 1;
 #else
 unsigned doubletap2wake_switch = 0;
 #endif //HIMAX_WAKE_MOD_DOUBLETAP2WAKE
-#define DT2W_TIMEOUT_MIN 10 // 1/100'th a second
 #define DT2W_TIMEOUT_MAX 1000 // 1 second
 
-static unsigned doubletap2wake_min_timeout = 40;
 static unsigned doubletap2wake_max_timeout = 400;
 static unsigned doubletap2wake_delta = 50;
 static s64 doubletap2wake_time[2] = {0, 0};
@@ -256,28 +254,6 @@ static ssize_t doubletap2wake_switch_set(struct device * dev,
 static DEVICE_ATTR(enable_dt2w,  0777, doubletap2wake_switch_get, doubletap2wake_switch_set);
 /* ------------------------------ */
 
-static ssize_t doubletap2wake_minimum_timeout_get(struct device *dev,
-			struct device_attribute *attr, char *buf)
-{
-    return sprintf(buf, "%u\n", doubletap2wake_min_timeout);
-}
-
-static ssize_t doubletap2wake_minimum_timeout_set(struct device * dev,
-		struct device_attribute * attr, const char * buf, size_t size)
-{
-	unsigned int val = 0;
-
-	sscanf(buf, "%u\n", &val);
-
-	if (!((val < DT2W_TIMEOUT_MIN) || (val > DT2W_TIMEOUT_MAX)))
-		doubletap2wake_min_timeout = val;
-
-	return size;
-}
-
-static DEVICE_ATTR(timeout_min_dt2w, 0777, doubletap2wake_minimum_timeout_get, doubletap2wake_minimum_timeout_set);
-/* ------------------------------ */
-
 static ssize_t doubletap2wake_maximum_timeout_get(struct device *dev,
 			struct device_attribute *attr, char *buf)
 {
@@ -291,7 +267,7 @@ static ssize_t doubletap2wake_maximum_timeout_set(struct device * dev,
 
 	sscanf(buf, "%u\n", &val);
 
-	if (!((val < DT2W_TIMEOUT_MIN) || (val > DT2W_TIMEOUT_MAX)))
+	if (!(val > DT2W_TIMEOUT_MAX))
 		doubletap2wake_max_timeout = val;
 
 	return size;
@@ -303,7 +279,6 @@ static DEVICE_ATTR(timeout_max_dt2w, 0777, doubletap2wake_maximum_timeout_get, d
 static struct attribute *doubletap2wake_attributes[] =
 {
 	&dev_attr_enable_dt2w.attr,
-	&dev_attr_timeout_min_dt2w.attr,
 	&dev_attr_timeout_max_dt2w.attr,
 	NULL
 };
@@ -323,7 +298,6 @@ static int doubletap2wake_init_sysfs(void) {
 
 
 	dev_attr_enable_dt2w.attr.name = "enable";
-	dev_attr_timeout_min_dt2w.attr.name = "timeout_min";
 	dev_attr_timeout_max_dt2w.attr.name = "timeout_max";
 
 	rc = sysfs_create_group(doubletap2wake_kobj,
@@ -465,11 +439,7 @@ int doubletap2wake_check_n_reset(void) {
 
 	doubletap2wake_time[1] = ktime_to_ms(ktime_get());
 
-	if (
-		((doubletap2wake_time[1]-doubletap2wake_time[0])>doubletap2wake_max_timeout)
-		||
-		((doubletap2wake_time[1]-doubletap2wake_time[0])<doubletap2wake_min_timeout)
-		) {
+	if ((doubletap2wake_time[1]-doubletap2wake_time[0])>doubletap2wake_max_timeout) {
 		doubletap2wake_time[0] = ktime_to_ms(ktime_get());
 		doubletap2wake_time[1] = 0;
 	}
