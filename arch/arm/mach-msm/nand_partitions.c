@@ -85,7 +85,6 @@ static int __init parse_tag_msm_partition(const struct tag *tag)
 	}
 
 	msm_nand_data.nr_parts = count;
-	msm_nand_data.parts = msm_nand_partitions;
 
 #ifdef CONFIG_PICO_NAND_RESIZE_PART
 #define PICO_PART_BOOT 2
@@ -98,6 +97,8 @@ static int __init parse_tag_msm_partition(const struct tag *tag)
 	msm_nand_partitions[PICO_PART_BOOT + 4].offset = msm_nand_partitions[PICO_PART_BOOT + 2].offset + msm_nand_partitions[PICO_PART_BOOT + 2].size;
 	msm_nand_partitions[PICO_PART_BOOT + 3].offset = msm_nand_partitions[PICO_PART_BOOT + 4].offset + msm_nand_partitions[PICO_PART_BOOT + 4].size;
 #endif
+
+	msm_nand_data.parts = msm_nand_partitions;
 
 	return 0;
 }
