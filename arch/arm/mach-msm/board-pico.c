@@ -2233,7 +2233,7 @@ static void __init pico_init(void)
 	if (!(board_mfg_mode() == 6 || board_mfg_mode() == 7))
 		pico_add_usb_devices();
 
-	//pico_wifi_init();
+	pico_wifi_init();
 
 	rc = pico_init_mmc(system_rev);
 	if (rc)
