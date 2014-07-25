@@ -17,13 +17,13 @@
 #include "mipi_dsi.h"
 #include "mipi_samsung.h"
 
-#ifdef CONFIG_HIMAX_WAKE_MOD_POCKETMOD
-#include <linux/towake.h>
-#endif
+#include <linux/leds.h>
+
 /* -----------------------------------------------------------------------------
  *                         External routine declaration
  * ----------------------------------------------------------------------------- */
 extern int mipi_status;
+#define DEFAULT_BRIGHTNESS 143
 extern int bl_level_prevset;
 extern struct dsi_cmd_desc *mipi_power_on_cmd;
 extern struct dsi_cmd_desc *mipi_power_off_cmd;
@@ -31,11 +31,15 @@ extern int mipi_power_on_cmd_size;
 extern int mipi_power_off_cmd_size;
 extern char ptype[60];
 
-static struct msm_panel_common_pdata *mipi_samsung_pdata;
+static struct mipi_dsi_panel_platform_data *mipi_samsung_pdata;
 
 static struct dsi_buf samsung_tx_buf;
 static struct dsi_buf samsung_rx_buf;
+static int mipi_samsung_lcd_init(void);
 
+static int wled_trigger_initialized;
+
+DEFINE_LED_TRIGGER(bkl_led_trigger);
 
 static char led_pwm1[] =
 {
@@ -442,12 +446,10 @@ void mipi_samsung_panel_type_detect(struct mipi_panel_info *mipi)
 
 static int mipi_samsung_lcd_on(struct platform_device *pdev)
 {
-#ifdef CONFIG_HIMAX_WAKE_MOD_POCKETMOD
-	is_screen_on = 1;
-#endif
 	struct msm_fb_data_type *mfd;
 	struct msm_fb_panel_data *pdata = NULL;
 	struct mipi_panel_info *mipi;
+	struct dcs_cmd_req cmdreq;
 
 	mfd = platform_get_drvdata(pdev);
 	if (!mfd)
@@ -459,23 +461,19 @@ static int mipi_samsung_lcd_on(struct platform_device *pdev)
 
 	mipi  = &mfd->panel_info.mipi;
 
-	if (mfd->first_init_lcd != 0) {
+	if (strlen(ptype) <= 13) {
 		printk("Display On - 1st time\n");
 
-		if (pdata && pdata->panel_type_detect)
-			pdata->panel_type_detect(mipi);
-
-		mfd->first_init_lcd = 0;
+	mipi_samsung_panel_type_detect(mipi);
 
 	} else {
 		printk("Display On \n");
 		if (panel_type != PANEL_ID_NONE) {
 			PR_DISP_INFO("%s\n", ptype);
 
-			htc_mdp_sem_down(current, &mfd->dma->mutex);
-			mipi_dsi_cmds_tx(mfd, &samsung_tx_buf, mipi_power_on_cmd,
+			mipi_dsi_cmds_tx(&samsung_tx_buf, mipi_power_on_cmd,
 				mipi_power_on_cmd_size);
-			htc_mdp_sem_up(&mfd->dma->mutex);
+
 		} else {
 			printk(KERN_ERR "panel_type=0x%x not support at power on\n", panel_type);
 			return -EINVAL;
@@ -488,10 +486,8 @@ static int mipi_samsung_lcd_on(struct platform_device *pdev)
 
 static int mipi_samsung_lcd_off(struct platform_device *pdev)
 {
-#ifdef CONFIG_HIMAX_WAKE_MOD_POCKETMOD
-	is_screen_on = 0;
-#endif
 	struct msm_fb_data_type *mfd;
+	struct dcs_cmd_req cmdreq;
 
 	PR_DISP_INFO("%s\n", __func__);
 
@@ -504,8 +500,10 @@ static int mipi_samsung_lcd_off(struct platform_device *pdev)
 
 	if (panel_type != PANEL_ID_NONE) {
 		PR_DISP_INFO("%s\n", ptype);
-		mipi_dsi_cmds_tx(mfd, &samsung_tx_buf, mipi_power_off_cmd,
-			mipi_power_off_cmd_size);
+
+			mipi_dsi_cmds_tx(&samsung_tx_buf, mipi_power_off_cmd,
+				mipi_power_on_cmd_size);
+
 	} else
 		printk(KERN_ERR "panel_type=0x%x not support at power off\n",
 			panel_type);
@@ -513,110 +511,67 @@ static int mipi_samsung_lcd_off(struct platform_device *pdev)
 	return 0;
 }
 
-static void mipi_dsi_set_backlight(struct msm_fb_data_type *mfd, int level)
+static void mipi_samsung_set_backlight(struct msm_fb_data_type *mfd)
 {
-	struct mipi_panel_info *mipi;
+	struct dcs_cmd_req cmdreq;
 
-	mipi  = &mfd->panel_info.mipi;
-	if (mipi_status == 0)
-		goto end;
-
-	if (mipi_samsung_pdata && mipi_samsung_pdata->shrink_pwm)
-		led_pwm1[1] = mipi_samsung_pdata->shrink_pwm(level);
-	else
-		led_pwm1[1] = (unsigned char)(level);
-
-	if (level == 0 || board_mfg_mode() == 4 ||
-	    (board_mfg_mode() == 5 && !(htc_battery_get_zcharge_mode() % 2))) {
-		led_pwm1[1] = 0;
+	if (mipi_samsung_pdata &&
+	    mipi_samsung_pdata->gpio_set_backlight) {
+		mipi_samsung_pdata->gpio_set_backlight(mfd->bl_level);
+		return;
 	}
 
-	htc_mdp_sem_down(current, &mfd->dma->mutex);
-	if (mipi->mode == DSI_VIDEO_MODE) {
-		mipi_dsi_cmd_mode_ctrl(1);	/* enable cmd mode */
-		mipi_dsi_cmds_tx(mfd, &samsung_tx_buf, samsung_cmd_backlight_cmds,
-			ARRAY_SIZE(samsung_cmd_backlight_cmds));
-		mipi_dsi_cmd_mode_ctrl(0);	/* disable cmd mode */
-	} else {
-		mipi_dsi_op_mode_config(DSI_CMD_MODE);
-		mipi_dsi_cmds_tx(mfd, &samsung_tx_buf, samsung_cmd_backlight_cmds,
-			ARRAY_SIZE(samsung_cmd_backlight_cmds));
+	if ((mipi_samsung_pdata->enable_wled_bl_ctrl)
+	    && (wled_trigger_initialized)) {
+		led_trigger_event(bkl_led_trigger, mfd->bl_level);
+		return;
 	}
-	htc_mdp_sem_up(&mfd->dma->mutex);
 
-	if (led_pwm1[1] != 0)
-		bl_level_prevset = level;
+	led_pwm1[1] = (unsigned char)(mfd->bl_level);
+
+
+			mipi_dsi_cmds_tx(&samsung_tx_buf, samsung_cmd_backlight_cmds,
+				ARRAY_SIZE(samsung_cmd_backlight_cmds));
 
 	PR_DISP_DEBUG("mipi_dsi_set_backlight > set brightness to %d\n", led_pwm1[1]);
-end:
+
 	return;
 }
 
-static void mipi_samsung_set_backlight(struct msm_fb_data_type *mfd)
+
+static int __devinit mipi_samsung_lcd_probe(struct platform_device *pdev)
 {
-	int bl_level;
+	struct msm_fb_data_type *mfd;
+	struct mipi_panel_info *mipi;
+	struct platform_device *current_pdev;
+	static struct mipi_dsi_phy_ctrl *phy_settings;
+	static char dlane_swap;
 
-	bl_level = mfd->bl_level;
-
-	mipi_dsi_set_backlight(mfd, bl_level);
-}
-
-static void mipi_samsung_display_on(struct msm_fb_data_type *mfd)
-{
-	PR_DISP_DEBUG("%s+\n", __func__);
-	htc_mdp_sem_down(current, &mfd->dma->mutex);
-	mipi_dsi_op_mode_config(DSI_CMD_MODE);
-	mipi_dsi_cmds_tx(mfd, &samsung_tx_buf, samsung_display_on_cmds,
-		ARRAY_SIZE(samsung_display_on_cmds));
-	htc_mdp_sem_up(&mfd->dma->mutex);
-}
-
-static void mipi_samsung_bkl_switch(struct msm_fb_data_type *mfd, bool on)
-{
-	unsigned int val = 0;
-
-	if (on) {
-		mipi_status = 1;
-		val = mfd->bl_level;
-		if (val == 0) {
-			if (bl_level_prevset != 0) {
-				val = bl_level_prevset;
-				mfd->bl_level = val;
-			} else {
-				val = DEFAULT_BRIGHTNESS;
-				mfd->bl_level = val;
-			}
-		}
-		mipi_dsi_set_backlight(mfd, mfd->bl_level);
-	} else {
-		mipi_status = 0;
-	}
-}
-
-static void mipi_samsung_bkl_ctrl(struct msm_fb_data_type *mfd, bool on)
-{
-	PR_DISP_INFO("mipi_samsung_bkl_ctrl > on = %x\n", on);
-	htc_mdp_sem_down(current, &mfd->dma->mutex);
-	if (on) {
-		mipi_dsi_op_mode_config(DSI_CMD_MODE);
-		mipi_dsi_cmds_tx(mfd, &samsung_tx_buf, samsung_bkl_enable_cmds,
-			ARRAY_SIZE(samsung_bkl_enable_cmds));
-	} else {
-		mipi_dsi_op_mode_config(DSI_CMD_MODE);
-		mipi_dsi_cmds_tx(mfd, &samsung_tx_buf, samsung_bkl_disable_cmds,
-			ARRAY_SIZE(samsung_bkl_disable_cmds));
-	}
-	htc_mdp_sem_up(&mfd->dma->mutex);
-}
-
-static int mipi_samsung_lcd_probe(struct platform_device *pdev)
-{
 	if (pdev->id == 0) {
 		mipi_samsung_pdata = pdev->dev.platform_data;
+
+		if (mipi_samsung_pdata
+			&& mipi_samsung_pdata->phy_ctrl_settings) {
+			phy_settings = (mipi_samsung_pdata->phy_ctrl_settings);
+		}
+
 		return 0;
 	}
 
-	msm_fb_add_device(pdev);
+	current_pdev = msm_fb_add_device(pdev);
+
+	if (current_pdev) {
+		mfd = platform_get_drvdata(current_pdev);
+		if (!mfd)
+			return -ENODEV;
+		if (mfd->key != MFD_KEY)
+			return -EINVAL;
+
+		mipi  = &mfd->panel_info.mipi;
+
+		if (phy_settings != NULL)
+			mipi->dsi_phy_db = phy_settings;
+	}
 
 	return 0;
 }
@@ -628,14 +583,16 @@ static struct platform_driver this_driver = {
 	},
 };
 
+static int mipi_samsung_lcd_late_init(struct platform_device *pdev)
+{
+	return 0;
+}
+
 static struct msm_fb_panel_data samsung_panel_data = {
 	.on		= mipi_samsung_lcd_on,
 	.off		= mipi_samsung_lcd_off,
 	.set_backlight  = mipi_samsung_set_backlight,
-	.display_on  = mipi_samsung_display_on,
-	.bklswitch	= mipi_samsung_bkl_switch,
-	.bklctrl	= mipi_samsung_bkl_ctrl,
-	.panel_type_detect = mipi_samsung_panel_type_detect,
+	.late_init	= mipi_samsung_lcd_late_init,
 };
 
 static int ch_used[3];
@@ -650,6 +607,12 @@ int mipi_samsung_device_register(struct msm_panel_info *pinfo,
 		return -ENODEV;
 
 	ch_used[channel] = TRUE;
+
+	ret = mipi_samsung_lcd_init();
+	if (ret) {
+		pr_err("mipi_samsung_lcd_init() failed with ret %u\n", ret);
+		return ret;
+	}
 
 	pdev = platform_device_alloc("mipi_samsung", (panel << 8)|channel);
 	if (!pdev)
@@ -679,12 +642,14 @@ err_device_put:
 	return ret;
 }
 
-static int __init mipi_samsung_lcd_init(void)
+static int mipi_samsung_lcd_init(void)
 {
+	led_trigger_register_simple("bkl_trigger", &bkl_led_trigger);
+	pr_info("%s: SUCCESS (WLED TRIGGER)\n", __func__);
+	wled_trigger_initialized = 1;
+
 	mipi_dsi_buf_alloc(&samsung_tx_buf, DSI_BUF_SIZE);
 	mipi_dsi_buf_alloc(&samsung_rx_buf, DSI_BUF_SIZE);
 
 	return platform_driver_register(&this_driver);
 }
-
-module_init(mipi_samsung_lcd_init);

@@ -1,4 +1,4 @@
-/* Copyright (c) 2011-2012, Code Aurora Forum. All rights reserved.
+/* Copyright (c) 2011-2012, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -21,10 +21,11 @@
 #include <linux/semaphore.h>
 #include <linux/spinlock.h>
 #include <linux/fb.h>
+/* LGE_CHANGE_S [yoonsoo.kim@lge.com] 20120130 : LCD ESD Protection*/
+#include <linux/jiffies.h>
+/* LGE_CHANGE_E  [yoonsoo.kim@lge.com] 20120130 : LCD ESD Protection*/
 #include <asm/system.h>
 #include <mach/hardware.h>
-#include <mach/panel_id.h>
-#include <mach/debug_display.h>
 #include "mdp.h"
 #include "msm_fb.h"
 #include "mdp4.h"
@@ -33,12 +34,17 @@
 #define DSI_VIDEO_BASE	0xF0000
 #define DMA_P_BASE      0x90000
 
-extern int protodcg_lcd_off2(struct platform_device *pdev);
-extern int protou_lcd_off2(struct platform_device *pdev);
 static int first_pixel_start_x;
 static int first_pixel_start_y;
 
-static ssize_t vsync_show_event(struct device *dev,
+/* LGE_CHANGE_S [yoonsoo.kim@lge.com] 20120130 : LCD ESD Protection*/
+/*For LCD ESD detection 27-01-2012*/
+#ifdef CONFIG_LGE_LCD_ESD_DETECTION
+static struct platform_device *esd_reset_pdev;
+#endif
+/* LGE_CHANGE_E  [yoonsoo.kim@lge.com]  20120130  :  LCD ESD Protection*/
+
+ssize_t mdp_dma_video_show_event(struct device *dev,
 		struct device_attribute *attr, char *buf)
 {
 	ssize_t ret = 0;
@@ -51,19 +57,10 @@ static ssize_t vsync_show_event(struct device *dev,
 
 	wait_for_completion(&vsync_cntrl.vsync_wait);
 	ret = snprintf(buf, PAGE_SIZE, "VSYNC=%llu",
-	ktime_to_ns(vsync_cntrl.vsync_time));
+			ktime_to_ns(vsync_cntrl.vsync_time));
 	buf[strlen(buf) + 1] = '\0';
 	return ret;
 }
-
-static DEVICE_ATTR(vsync_event, S_IRUGO, vsync_show_event, NULL);
-static struct attribute *vsync_fs_attrs[] = {
-	&dev_attr_vsync_event.attr,
-	NULL,
-};
-static struct attribute_group vsync_fs_attr_group = {
-	.attrs = vsync_fs_attrs,
-};
 
 int mdp_dsi_video_on(struct platform_device *pdev)
 {
@@ -106,6 +103,18 @@ int mdp_dsi_video_on(struct platform_device *pdev)
 	struct msm_fb_data_type *mfd;
 	int ret;
 	uint32_t mask, curr;
+
+/* LGE_CHANGE_S : LCD ESD Protection 
+ * 2012-01-30, yoonsoo@lge.com
+ * LCD ESD Protection
+ */	
+#ifdef CONFIG_LGE_LCD_ESD_DETECTION
+	if( (!esd_reset_pdev) && (pdev))
+	{
+		esd_reset_pdev = pdev;
+	}
+#endif
+/* LGE_CHANGE_E : LCD ESD Protection*/
 
 	mfd = (struct msm_fb_data_type *)platform_get_drvdata(pdev);
 
@@ -159,29 +168,32 @@ int mdp_dsi_video_on(struct platform_device *pdev)
 			mfd->panel_info.bpp);
 		return -ENODEV;
 	}
-	
+	/* MDP cmd block enable */
 	mdp_pipe_ctrl(MDP_CMD_BLOCK, MDP_BLOCK_POWER_ON, FALSE);
 
 
-	
+	/* starting address */
 	MDP_OUTP(MDP_BASE + DMA_P_BASE + 0x8, (uint32) buf);
 
-	
+	/* active window width and height */
 	MDP_OUTP(MDP_BASE + DMA_P_BASE + 0x4, ((fbi->var.yres) << 16) |
 		(fbi->var.xres));
 
-	
+	/* buffer ystride */
 	MDP_OUTP(MDP_BASE + DMA_P_BASE + 0xc, fbi->fix.line_length);
 
-	
+	/* x/y coordinate = always 0 for lcdc */
 	MDP_OUTP(MDP_BASE + DMA_P_BASE + 0x10, 0);
 
-	
+	/* dma config */
 	curr = inpdw(MDP_BASE + DMA_P_BASE);
 	mask = 0x0FFFFFFF;
 	dma2_cfg_reg = (dma2_cfg_reg & mask) | (curr & ~mask);
 	MDP_OUTP(MDP_BASE + DMA_P_BASE, dma2_cfg_reg);
 
+	/*
+	 * DSI timing setting
+	 */
 	h_back_porch = var->left_margin;
 	h_front_porch = var->right_margin;
 	v_back_porch = var->upper_margin;
@@ -215,7 +227,7 @@ int mdp_dsi_video_on(struct platform_device *pdev)
 	active_v_end = active_v_start +	(var->yres) * hsync_period - 1;
 	active_v_start |= ACTIVE_START_Y_EN;
 
-	dsi_underflow_clr |= 0x80000000;	
+	dsi_underflow_clr |= 0x80000000;	/* enable recovery */
 	hsync_polarity = 0;
 	vsync_polarity = 0;
 	data_en_polarity = 0;
@@ -223,12 +235,33 @@ int mdp_dsi_video_on(struct platform_device *pdev)
 	ctrl_polarity =	(data_en_polarity << 2) |
 		(vsync_polarity << 1) | (hsync_polarity);
 
-	if (!(mfd->cont_splash_done)) {
+/*LGE_CHANGE_S : seven.kim@lge.com to migrate pre-CS kernel*/
+#ifndef CONFIG_FB_MSM_EBI2
+
+/*[LGSI_SP4_BSP_BEGIN] [kiran.jainapure@lge.com] - Multiple power off registers. Sometimes display is not wakeup*/
+#ifndef CONFIG_FB_MSM_MIPI_DSI_LG4573B
+	if (!(mfd->cont_splash_done)) 
+	{
+		
 		mdp_pipe_ctrl(MDP_CMD_BLOCK,
 			MDP_BLOCK_POWER_OFF, FALSE);
 		MDP_OUTP(MDP_BASE + DSI_VIDEO_BASE, 0);
 		mipi_dsi_controller_cfg(0);
 	}
+#else /* below code is required for smooth boot logo display*/
+/*LGE_CHANGE_S, youngbae.choi@lge.com, 12-12-28, for V7 sometimes booting animation is no display*/
+/* LGE_CHANGE_S jungrock.oh@lge.com 2013-01-15 add featuring for booting animation sometimes no display*/
+#if !defined(CONFIG_MACH_MSM8X25_V7) && !defined(CONFIG_MACH_MSM7X27A_U0)
+/* LGE_CHANGE_E jungrock.oh@lge.com 2013-01-15 add fearuring for booting animation sometimes no display*/
+		MDP_OUTP(MDP_BASE + DSI_VIDEO_BASE, 0);
+		mipi_dsi_controller_cfg(0);
+#endif
+/*LGE_CHANGE_E, youngbae.choi@lge.com, 12-12-28, for V7 sometimes booting animation is no display*/
+#endif /* below code is required for smooth boot logo display*/
+/*[LGSI_SP4_BSP_END] [kiran.jainapure@lge.com] */
+	
+#endif /*CONFIG_FB_MSM_EBI2*/
+/*LGE_CHANGE_E : seven.kim@lge.com to migrate pre-CS kernel*/	
 
 	MDP_OUTP(MDP_BASE + DSI_VIDEO_BASE + 0x4, hsync_ctrl);
 	MDP_OUTP(MDP_BASE + DSI_VIDEO_BASE + 0x8, vsync_period);
@@ -246,29 +279,14 @@ int mdp_dsi_video_on(struct platform_device *pdev)
 
 	ret = panel_next_on(pdev);
 	if (ret == 0) {
-		
+		/* enable DSI block */
 		MDP_OUTP(MDP_BASE + DSI_VIDEO_BASE, 1);
-		
+		/*Turning on DMA_P block*/
 		mdp_pipe_ctrl(MDP_DMA2_BLOCK, MDP_BLOCK_POWER_ON, FALSE);
 	}
 
-	
+	/* MDP cmd block disable */
 	mdp_pipe_ctrl(MDP_CMD_BLOCK, MDP_BLOCK_POWER_OFF, FALSE);
-
-	if (!vsync_cntrl.sysfs_created) {
-		ret = sysfs_create_group(&vsync_cntrl.dev->kobj,
-			&vsync_fs_attr_group);
-		if (ret) {
-			pr_err("%s: sysfs creation failed, ret=%d\n",
-				__func__, ret);
-			return ret;
-		}
-
-		kobject_uevent(&vsync_cntrl.dev->kobj, KOBJ_ADD);
-		pr_debug("%s: kobject_uevent(KOBJ_ADD)\n", __func__);
-		vsync_cntrl.sysfs_created = 1;
-	}
-	mdp_histogram_ctrl_all(TRUE);
 
 	return ret;
 }
@@ -276,49 +294,30 @@ int mdp_dsi_video_on(struct platform_device *pdev)
 int mdp_dsi_video_off(struct platform_device *pdev)
 {
 	int ret = 0;
-	int retry_cnt = 0;
-	struct msm_fb_data_type *mfd = (struct msm_fb_data_type *)platform_get_drvdata(pdev);
-	PR_DISP_INFO("%s\n", __func__);
-
-	if (panel_type == PANEL_ID_PROTOU_LG || panel_type == PANEL_ID_PROTODCG_LG) {
-		if(!mfd) {
-			PR_DISP_ERR("mdp_dsi_video_off: mfd is NULL\n");
-			return -ENODEV;
-		}
-
-		do {
-			memset(mfd->fbi->screen_base, 0x00, mfd->fbi->fix.smem_len);
-			hr_msleep(80);
-
-#ifdef CONFIG_MACH_DUMMY
-			ret = protodcg_lcd_off2(pdev);
-#elif defined CONFIG_MACH_PROTOU
-			ret = protou_lcd_off2(pdev);
-#else
+	/*[LGSI_SP4_BSP_BEGIN] [kiran.jainapure@lge.com] */
+#ifdef CONFIG_FB_MSM_MIPI_DSI_LG4573B
+	static boolean firstbootend=true;
 #endif
 
-			if (ret < 0) {
-				panel_next_off(pdev);
-				hr_msleep(2);
-				panel_next_on(pdev);
-				hr_msleep(5);
-				retry_cnt++;
-			} else {
-				ret = 0;
-				break;
-			}
-		} while (retry_cnt < 10);
-		PR_DISP_INFO("%s : mipi_lg_lcd_off retry_cnt = %d\n", __func__, retry_cnt);
-		hr_msleep(20);
+/* LGE_CHANGE_S : LCD ESD Protection 
+ * 2012-01-30, yoonsoo@lge.com
+ * LCD ESD Protection
+ */
+#ifdef CONFIG_LGE_LCD_ESD_DETECTION	
+	if( (!esd_reset_pdev) && (pdev))
+	{
+		esd_reset_pdev = pdev;
 	}
+#endif
+/* LGE_CHANGE_E : LCD ESD Protection*/
+	/*[LGSI_SP4_BSP_END] [kiran.jainapure@lge.com] */
 
-	mdp_histogram_ctrl_all(FALSE);
-	
+	/* MDP cmd block enable */
 	mdp_pipe_ctrl(MDP_CMD_BLOCK, MDP_BLOCK_POWER_ON, FALSE);
 	MDP_OUTP(MDP_BASE + DSI_VIDEO_BASE, 0);
-	
+	/* MDP cmd block disable */
 	mdp_pipe_ctrl(MDP_CMD_BLOCK, MDP_BLOCK_POWER_OFF, FALSE);
-	
+	/*Turning off DMA_P block*/
 	mdp_pipe_ctrl(MDP_DMA2_BLOCK, MDP_BLOCK_POWER_OFF, FALSE);
 
 	ret = panel_next_off(pdev);
@@ -326,8 +325,18 @@ int mdp_dsi_video_off(struct platform_device *pdev)
 	atomic_set(&vsync_cntrl.suspend, 1);
 	atomic_set(&vsync_cntrl.vsync_resume, 0);
 	complete_all(&vsync_cntrl.vsync_wait);
-	
+	/* delay to make sure the last frame finishes */
 	msleep(20);
+
+	/*[LGSI_SP4_BSP_BEGIN] [kiran.jainapure@lge.com] : MDP Clock is not disabled in sleep mode since command block is not turned off*/
+#ifdef CONFIG_FB_MSM_MIPI_DSI_LG4573B
+	if(firstbootend==true)
+	{
+		mdp_pipe_ctrl(MDP_CMD_BLOCK, MDP_BLOCK_POWER_OFF, FALSE);
+		firstbootend=false;
+	}
+#endif
+	/*[LGSI_SP4_BSP_END] [kiran.jainapure@lge.com] */
 
 	return ret;
 }
@@ -344,22 +353,20 @@ void mdp_dma_video_vsync_ctrl(int enable)
 		INIT_COMPLETION(vsync_cntrl.vsync_wait);
 
 	vsync_cntrl.vsync_irq_enabled = enable;
+	if (!enable)
+		vsync_cntrl.disabled_clocks = 0;
 	disabled_clocks = vsync_cntrl.disabled_clocks;
 	spin_unlock_irqrestore(&mdp_spin_lock, flag);
 
-	if (enable && disabled_clocks)
+	if (enable && disabled_clocks) {
 		mdp_pipe_ctrl(MDP_CMD_BLOCK, MDP_BLOCK_POWER_ON, FALSE);
-
-	spin_lock_irqsave(&mdp_spin_lock, flag);
-	if (enable && vsync_cntrl.disabled_clocks) {
+		spin_lock_irqsave(&mdp_spin_lock, flag);
 		outp32(MDP_INTR_CLEAR, LCDC_FRAME_START);
 		mdp_intr_mask |= LCDC_FRAME_START;
 		outp32(MDP_INTR_ENABLE, mdp_intr_mask);
 		mdp_enable_irq(MDP_VSYNC_TERM);
-		vsync_cntrl.disabled_clocks = 0;
+		spin_unlock_irqrestore(&mdp_spin_lock, flag);
 	}
-	spin_unlock_irqrestore(&mdp_spin_lock, flag);
-
 	if (vsync_cntrl.vsync_irq_enabled &&
 		atomic_read(&vsync_cntrl.suspend) == 0)
 		atomic_set(&vsync_cntrl.vsync_resume, 1);
@@ -376,17 +383,17 @@ void mdp_dsi_video_update(struct msm_fb_data_type *mfd)
 	if (!mfd->panel_power_on)
 		return;
 
-	htc_mdp_sem_down(current, &mfd->dma->mutex);
+	down(&mfd->dma->mutex);
 
 	bpp = fbi->var.bits_per_pixel / 8;
 	buf = (uint8 *) fbi->fix.smem_start;
 
 	buf += calc_fb_offset(mfd, fbi, bpp);
 
-	
-	
+	/* no need to power on cmd block since it's dsi mode */
+	/* starting address */
 	MDP_OUTP(MDP_BASE + DMA_P_BASE + 0x8, (uint32) buf);
-	
+	/* enable  irq */
 	spin_lock_irqsave(&mdp_spin_lock, flag);
 	mdp_enable_irq(irq_block);
 	INIT_COMPLETION(mfd->dma->comp);
@@ -399,5 +406,41 @@ void mdp_dsi_video_update(struct msm_fb_data_type *mfd)
 	spin_unlock_irqrestore(&mdp_spin_lock, flag);
 	wait_for_completion_killable(&mfd->dma->comp);
 	mdp_disable_irq(irq_block);
-	htc_mdp_sem_up(&mfd->dma->mutex);
+	up(&mfd->dma->mutex);
 }
+
+/* LGE_CHANGE_S : LCD ESD Protection 
+ * 2012-01-30, yoonsoo@lge.com
+ * LCD ESD Protection
+ */
+#ifdef CONFIG_LGE_LCD_ESD_DETECTION
+/********************************************************************
+Function Name  :-  esd_dma_dsi_panel_off
+Arguments 	   :-  None
+Return Value   :-  None
+Functionality  :-  to power off DMA , MIPI DSI & LCD panel.  
+dependencies   :-  Should be called after dsi_video_on or off function.
+*********************************************************************/
+void esd_dma_dsi_panel_off(void)
+{
+	if(esd_reset_pdev)
+	{
+		mdp_dsi_video_off(esd_reset_pdev);
+	}
+}
+/********************************************************************
+Function Name  :-  esd_dma_dsi_panel_on
+Arguments 	   :-  None
+Return Value   :-  None
+Functionality  :-  to power on DMA , MIPI DSI & LCD panel.  
+dependencies   :-  Should be called after dsi_video_on or off function.
+*********************************************************************/
+void esd_dma_dsi_panel_on(void)
+{
+	if(esd_reset_pdev)
+	{
+		mdp_dsi_video_on(esd_reset_pdev);
+	}
+}
+#endif
+/* LGE_CHANGE_E : LCD ESD Protection*/

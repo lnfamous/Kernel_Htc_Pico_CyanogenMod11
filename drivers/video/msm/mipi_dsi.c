@@ -29,19 +29,21 @@
 #include <mach/hardware.h>
 #include <mach/gpio.h>
 #include <mach/clk.h>
-#include <mach/debug_display.h>
 
 #include "msm_fb.h"
 #include "mipi_dsi.h"
 #include "mdp.h"
 #include "mdp4.h"
 
-#include <mach/panel_id.h>
-
 u32 dsi_irq;
 u32 esc_byte_ratio;
 
 static boolean tlmm_settings = FALSE;
+/*[LGSI_SP4_BSP_BEGIN] [kiran.jainapure@lge.com]*/
+#ifdef CONFIG_FB_MSM_MIPI_DSI_LG4573B
+static boolean lglogo_firstboot = TRUE;
+#endif
+/*[LGSI_SP4_BSP_END] [kiran.jainapure@lge.com]*/
 
 static int mipi_dsi_probe(struct platform_device *pdev);
 static int mipi_dsi_remove(struct platform_device *pdev);
@@ -53,7 +55,7 @@ static struct platform_device *pdev_list[MSM_FB_MAX_DEV_LIST];
 static int pdev_list_cnt;
 static struct mipi_dsi_platform_data *mipi_dsi_pdata;
 
-static int vsync_gpio = -1;
+static int vsync_gpio = 97;
 
 static struct platform_driver mipi_dsi_driver = {
 	.probe = mipi_dsi_probe,
@@ -65,6 +67,28 @@ static struct platform_driver mipi_dsi_driver = {
 };
 
 struct device dsi_dev;
+
+//LGE_CHANGE_S [Kiran] Change LCD sleep sequence
+#define DSI_VIDEO_BASE	0xF0000
+/*LGE_START: Kiran.kanneganti@lge.com 25-2-2012*/
+/*In case of ESD no delays required in power off*/
+#ifdef CONFIG_LGE_LCD_ESD_DETECTION
+extern boolean is_esd_occured;
+#endif
+/*LGE_END: Kiran.kanneganti@lge.com*/
+//LGE_CHANGE_E [Kiran] Change LCD sleep sequence
+
+/*LGE_CHANGE_S: Kiran.kanneganti@lge.com 05-03-2012*/
+/*LCD Reset After data pulled Down*/
+#ifdef CONFIG_FB_MSM_MIPI_DSI_LG4573B
+extern void mipi_ldp_lcd_panel_poweroff(void);
+#endif
+/*LGE_CHANGE_E LCD Reset After Data Pulled Down*/
+
+#ifdef CONFIG_FB_MSM_MIPI_DSI_HX8379A
+extern unsigned int maker_id;  //LGE_CHANGE, sohyun.nam@lge.com, 12-12-27, maker_id is using both LG4573B and HX8379A
+extern void mipi_ldp_lcd_hx8379a_panel_poweroff(void);
+#endif
 
 int mipi_status = 1;
 struct mutex cmdlock;
@@ -87,15 +111,45 @@ static int mipi_dsi_off(struct platform_device *pdev)
 	if (mdp_rev >= MDP_REV_41)
 		mutex_lock(&mfd->dma->ov_mutex);
 	else
-		htc_mdp_sem_down(current, &mfd->dma->mutex);
+		down(&mfd->dma->mutex);
 
+/*LGE_CHANGE_S, youngbae.choi@lge.com, 12-12-28, for V7 sometimes booting animation is no display*/
+#ifdef CONFIG_FB_MSM_MIPI_DSI_LG4573B
+/* LGE_CHANGE_S jungrock.oh@lge.com 2013-01-15 add featuring for booting animation sometimes no display*/
+#if defined(CONFIG_MACH_MSM8X25_V7) || defined(CONFIG_MACH_MSM7X27A_U0)
+/* LGE_CHANGE_E jungrock.oh@lge.com 2013-01-15 add featuring for booting animation sometimes no display*/
+	if(lglogo_firstboot){
+#ifdef CONFIG_FB_MSM_MIPI_DSI_HX8379A //LGE_CHANGE, sohyun.nam@lge.com, 12-12-27, using HX8379A
+	if( maker_id == 1 )
+#endif		
+		mipi_ldp_lcd_panel_poweroff();
+	 }
+#endif
+#endif
+/*LGE_CHANGE_E, youngbae.choi@lge.com, 12-12-28, for V7 sometimes booting animation is no display*/
 	mdp4_overlay_dsi_state_set(ST_DSI_SUSPEND);
 
-	mipi_dsi_clk_cfg(1);
+	/* make sure dsi clk is on so that
+	 * dcs commands can be sent
+	 */
+/*LGE_CHANGE_S, youngbae.choi@lge.com, 12-12-28, for V7 sometimes booting animation is no display*/
+#ifdef CONFIG_FB_MSM_MIPI_DSI_LG4573B
+/* LGE_CHANGE_S jungrock.oh@lge.com 2013-01-15 add featuring for booting animation sometimes no display*/
+#if defined(CONFIG_MACH_MSM8X25_V7) || defined(CONFIG_MACH_MSM7X27A_U0)
+/* LGE_CHANGE_E jungrock.oh@lge.com 2013-01-15 add featuring for booting animation sometimes no display*/
+	if(!lglogo_firstboot)
+		mipi_dsi_clk_cfg(1);
+#endif
+#endif
+/*LGE_CHANGE_E, youngbae.choi@lge.com, 12-12-28, for V7 sometimes booting animation is no display*/
 
-	
+	/* make sure dsi_cmd_mdp is idle */
 	mipi_dsi_cmd_mdp_busy();
 
+	/*
+	 * Desctiption: change to DSI_CMD_MODE since it needed to
+	 * tx DCS dsiplay off comamnd to panel
+	 */
 	mipi_dsi_op_mode_config(DSI_CMD_MODE);
 
 	if (mfd->panel_info.type == MIPI_CMD_PANEL) {
@@ -108,32 +162,62 @@ static int mipi_dsi_off(struct platform_device *pdev)
 		}
 	}
 
-	if (panel_type != PANEL_ID_PROTOU_LG && panel_type != PANEL_ID_PROTODCG_LG)
-		ret = panel_next_off(pdev);
-
-#ifdef CONFIG_MSM_BUS_SCALING
-	mdp_bus_scale_update_request(0);
-#endif
+	ret = panel_next_off(pdev);
 
 	spin_lock_bh(&dsi_clk_lock);
 	mipi_dsi_clk_disable();
 
-	
+	/* disbale dsi engine */
 	MIPI_OUTP(MIPI_DSI_BASE + 0x0000, 0);
 
 	mipi_dsi_phy_ctrl(0);
 
 	mipi_dsi_ahb_ctrl(0);
 	spin_unlock_bh(&dsi_clk_lock);
+/*LGE_CHANGE_S: Kiran.kanneganti@lge.com 05-03-2012*/
+/*LCD Reset After data pulled Down*/
+#ifdef CONFIG_FB_MSM_MIPI_DSI_LG4573B
+/*LGE_CHANGE_S, youngbae.choi@lge.com, 12-12-28, for V7 sometimes booting animation is no display*/
+#if defined(CONFIG_MACH_MSM8X25_V7)
+/*LGE_CHANGE_S, youngbae.choi@lge.com, 13-01-14, when sleep, LCD RESET PIN HIGH [ non active ]*/
+#if 0
+	if(!lglogo_firstboot){
+#ifdef CONFIG_FB_MSM_MIPI_DSI_HX8379A //LGE_CHANGE, sohyun.nam@lge.com, 12-12-27, using HX8379A
+	if( maker_id == 1 )
+#endif		
+		mipi_ldp_lcd_panel_poweroff();
+	}
+#endif
+/*LGE_CHANGE_E, youngbae.choi@lge.com, 13-01-14, when sleep, LCD RESET PIN HIGH [ non active ]*/
+#else
+	mipi_ldp_lcd_panel_poweroff();
+#endif
+/*LGE_CHANGE_E, youngbae.choi@lge.com, 12-12-28, for V7 sometimes booting animation is no display*/
+#endif
+/*LGE_CHANGE_E LCD Reset After Data Pulled Down*/
+#ifdef CONFIG_FB_MSM_MIPI_DSI_HX8379A //LGE_CHANGE, sohyun.nam@lge.com, 12-12-27, using HX8379A
+	if( maker_id == 0 )
+		mipi_ldp_lcd_hx8379a_panel_poweroff();
+#endif
 
-	mipi_dsi_unprepare_clocks();
+/*LGE_CHANGE_S, youngbae.choi@lge.com, 12-12-28, for V7 sometimes booting animation is no display*/
+#ifdef CONFIG_FB_MSM_MIPI_DSI_LG4573B
+/* LGE_CHANGE_S jungrock.oh@lge.com 2013-01-15 add featuring for booting animation sometimes no display*/
+#if defined(CONFIG_MACH_MSM8X25_V7) || defined(CONFIG_MACH_MSM7X27A_U0)
+/* LGE_CHANGE_E jungrock.oh@lge.com 2013-01-15 add featuring for booting animation sometimes no display*/
+	if(!lglogo_firstboot)
+		mipi_dsi_unprepare_clocks();
+		lglogo_firstboot=false;
+#endif
+#endif
+/*LGE_CHANGE_E, youngbae.choi@lge.com, 12-12-28, for V7 sometimes booting animation is no display*/
 	if (mipi_dsi_pdata && mipi_dsi_pdata->dsi_power_save)
 		mipi_dsi_pdata->dsi_power_save(0);
 
 	if (mdp_rev >= MDP_REV_41)
 		mutex_unlock(&mfd->dma->ov_mutex);
 	else
-		htc_mdp_sem_up(&mfd->dma->mutex);
+		up(&mfd->dma->mutex);
 
 	pr_debug("%s-:\n", __func__);
 
@@ -154,20 +238,31 @@ static int mipi_dsi_on(struct platform_device *pdev)
 	u32 dummy_xres, dummy_yres;
 	int target_type = 0;
 
-	printk("%s+:\n", __func__);
-
 	mfd = platform_get_drvdata(pdev);
 	fbi = mfd->fbi;
 	var = &fbi->var;
 	pinfo = &mfd->panel_info;
 	esc_byte_ratio = pinfo->mipi.esc_byte_ratio;
 
+	if (mipi_dsi_pdata && mipi_dsi_pdata->dsi_power_save)
+		mipi_dsi_pdata->dsi_power_save(1);
 
-	if (mfd->first_init_lcd == 0) {
-		if (mipi_dsi_pdata && mipi_dsi_pdata->dsi_power_save)
-			mipi_dsi_pdata->dsi_power_save(1);
+	/*[LGSI_SP4_BSP_BEGIN] [kiran.jainapure@lge.com]: reset mipi register for first display on, since mipi registers were initialized at modem side*/
+#ifdef CONFIG_FB_MSM_MIPI_DSI_LG4573B	
+/*LGE_CHANGE_S, youngbae.choi@lge.com, 12-12-28, for V7 sometimes booting animation is no display*/
+/* LGE_CHANGE_S jungrock.oh@lge.com 2013-01-15 add featuring for booting animation sometimes no display*/
+#if !defined(CONFIG_MACH_MSM8X25_V7) && !defined(CONFIG_MACH_MSM7X27A_U0)
+/* LGE_CHANGE_E jungrock.oh@lge.com 2013-01-15 add featuring for booting animation sometimes no display*/
+	if(lglogo_firstboot){
+		mipi_dsi_sw_reset();
+		usleep(100);
+		lglogo_firstboot=false;
 	}
-
+#endif	
+/*LGE_CHANGE_E, youngbae.choi@lge.com, 12-12-28, for V7 sometimes booting animation is no display*/
+#endif	
+	/*[LGSI_SP4_BSP_END] [kiran.jainapure@lge.com]*/
+	
 	cont_splash_clk_ctrl(0);
 	mipi_dsi_prepare_clocks();
 
@@ -214,9 +309,8 @@ static int mipi_dsi_on(struct platform_device *pdev)
 					vfp - 1) << 16 | (hspw + hbp +
 					width + dummy_xres + hfp - 1));
 		} else {
-			
-			MIPI_OUTP(MIPI_DSI_BASE + 0x00ac,
-						mipi_dsi_pdata->dlane_swap);
+			/* DSI_LAN_SWAP_CTRL */
+			MIPI_OUTP(MIPI_DSI_BASE + 0x00ac, mipi->dlane_swap);
 
 			MIPI_OUTP(MIPI_DSI_BASE + 0x20,
 				((hbp + width + dummy_xres) << 16 | (hbp)));
@@ -231,7 +325,7 @@ static int mipi_dsi_on(struct platform_device *pdev)
 		MIPI_OUTP(MIPI_DSI_BASE + 0x30, 0);
 		MIPI_OUTP(MIPI_DSI_BASE + 0x34, (vspw << 16));
 
-	} else {		
+	} else {		/* command mode */
 		if (mipi->dst_format == DSI_CMD_DST_FORMAT_RGB888)
 			bpp = 3;
 		else if (mipi->dst_format == DSI_CMD_DST_FORMAT_RGB666)
@@ -239,22 +333,22 @@ static int mipi_dsi_on(struct platform_device *pdev)
 		else if (mipi->dst_format == DSI_CMD_DST_FORMAT_RGB565)
 			bpp = 2;
 		else
-			bpp = 3;	
+			bpp = 3;	/* Default format set to RGB888 */
 
 		ystride = width * bpp + 1;
 
-		
+		/* DSI_COMMAND_MODE_MDP_STREAM_CTRL */
 		data = (ystride << 16) | (mipi->vc << 8) | DTYPE_DCS_LWRITE;
 		MIPI_OUTP(MIPI_DSI_BASE + 0x5c, data);
 		MIPI_OUTP(MIPI_DSI_BASE + 0x54, data);
 
-		
+		/* DSI_COMMAND_MODE_MDP_STREAM_TOTAL */
 		data = height << 16 | width;
 		MIPI_OUTP(MIPI_DSI_BASE + 0x60, data);
 		MIPI_OUTP(MIPI_DSI_BASE + 0x58, data);
 	}
 
-	mipi_dsi_host_init(mipi, mipi_dsi_pdata->dlane_swap);
+	mipi_dsi_host_init(mipi);
 
 	if (mipi->force_clk_lane_hs) {
 		u32 tmp;
@@ -265,33 +359,13 @@ static int mipi_dsi_on(struct platform_device *pdev)
 		wmb();
 	}
 
-#if defined(CONFIG_MACH_DUMMY)
-	if ((panel_type == PANEL_ID_PROTODCG_SHARP || panel_type == PANEL_ID_PROTODCG_SHARP_C1) &&
-		mfd->first_init_lcd != 0) {
-		protodcg_orise_lcd_pre_off(pdev);
-		if (mipi_dsi_pdata && mipi_dsi_pdata->dsi_power_save)
-			mipi_dsi_pdata->dsi_power_save(1);
-	}
-#elif defined(CONFIG_MACH_PROTOU)
-	if ((panel_type == PANEL_ID_PROTOU_SHARP || panel_type == PANEL_ID_PROTOU_SHARP_C1) &&
-		mfd->first_init_lcd != 0) {
-		
-		protou_orise_lcd_pre_off(pdev);
-		if (mipi_dsi_pdata && mipi_dsi_pdata->dsi_power_save)
-			mipi_dsi_pdata->dsi_power_save(1);
-	}
-#endif
-	if (panel_type == PANEL_ID_URANUS_SONY_ORISE) {
-		if(mfd->first_init_lcd != 0) {
-			if (mipi_dsi_pdata && mipi_dsi_pdata->lcd_pre_off)
-				mipi_dsi_pdata->lcd_pre_off(pdev);
-			if (mipi_dsi_pdata && mipi_dsi_pdata->dsi_power_save)
-				mipi_dsi_pdata->dsi_power_save(1);
-		}
+	if (mdp_rev >= MDP_REV_41)
+		mutex_lock(&mfd->dma->ov_mutex);
+	else
+		down(&mfd->dma->mutex);
 
-	}
-
-	ret = panel_next_on(pdev);
+	if (mfd->op_enable)
+		ret = panel_next_on(pdev);
 
 	mipi_dsi_op_mode_config(mipi->mode);
 
@@ -342,15 +416,22 @@ static int mipi_dsi_on(struct platform_device *pdev)
 		}
 	}
 
-#ifdef CONFIG_MSM_BUS_SCALING
-	mdp_bus_scale_update_request(2);
-#endif
-
 	mdp4_overlay_dsi_state_set(ST_DSI_RESUME);
+
+	if (mdp_rev >= MDP_REV_41)
+		mutex_unlock(&mfd->dma->ov_mutex);
+	else
+		up(&mfd->dma->mutex);
 
 	pr_debug("%s-:\n", __func__);
 
 	return ret;
+}
+
+
+static int mipi_dsi_late_init(struct platform_device *pdev)
+{
+	return panel_next_late_init(pdev);
 }
 
 
@@ -409,6 +490,11 @@ static int mipi_dsi_probe(struct platform_device *pdev)
 
 		if (mdp_rev == MDP_REV_42 && mipi_dsi_pdata &&
 			mipi_dsi_pdata->target_type == 1) {
+			/* Target type is 1 for device with (De)serializer
+			 * 0x4f00000 is the base for TV Encoder.
+			 * Unused Offset 0x1000 is used for
+			 * (de)serializer on emulation platform
+			 */
 			periph_base = ioremap(MMSS_SERDES_BASE_PHY, 0x100);
 
 			if (periph_base) {
@@ -474,8 +560,14 @@ static int mipi_dsi_probe(struct platform_device *pdev)
 	if (!mdp_dev)
 		return -ENOMEM;
 
+	/*
+	 * link to the latest pdev
+	 */
 	mfd->pdev = mdp_dev;
 
+	/*
+	 * alloc panel device data
+	 */
 	if (platform_device_add_data
 	    (mdp_dev, pdev->dev.platform_data,
 	     sizeof(struct msm_fb_panel_data))) {
@@ -483,11 +575,18 @@ static int mipi_dsi_probe(struct platform_device *pdev)
 		platform_device_put(mdp_dev);
 		return -ENOMEM;
 	}
+	/*
+	 * data chain
+	 */
 	pdata = mdp_dev->dev.platform_data;
 	pdata->on = mipi_dsi_on;
 	pdata->off = mipi_dsi_off;
+	pdata->late_init = mipi_dsi_late_init;
 	pdata->next = pdev;
 
+	/*
+	 * get/set panel specific fb info
+	 */
 	mfd->panel_info = pdata->panel_info;
 	pinfo = &mfd->panel_info;
 
@@ -549,7 +648,7 @@ static int mipi_dsi_probe(struct platform_device *pdev)
 		 || (mipi->dst_format == DSI_VIDEO_DST_FORMAT_RGB565))
 		bpp = 2;
 	else
-		bpp = 3;		
+		bpp = 3;		/* Default format set to RGB888 */
 
 	if (mfd->panel_info.type == MIPI_VIDEO_PANEL &&
 		!mfd->panel_info.clk_rate) {
@@ -577,8 +676,14 @@ static int mipi_dsi_probe(struct platform_device *pdev)
 		dsi_pclk_rate = 35000000;
 	mipi->dsi_pclk_rate = dsi_pclk_rate;
 
+	/*
+	 * set driver data
+	 */
 	platform_set_drvdata(mdp_dev, mfd);
 
+	/*
+	 * register in mdp driver
+	 */
 	rc = platform_device_add(mdp_dev);
 	if (rc)
 		goto mipi_dsi_probe_err;
@@ -623,5 +728,37 @@ static int __init mipi_dsi_driver_init(void)
 
 	return ret;
 }
+
+/* LGE_CHANGE_S : LCD ESD Protection 
+ * 2012-01-30, yoonsoo@lge.com
+ * LCD ESD Protection
+ */
+#ifdef CONFIG_LGE_LCD_ESD_DETECTION
+/********************************************************************
+Function Name  :-  esd_sw_test_lcd_panel_power_off
+Arguments 	   :-  None
+Return Value   :-  None
+Functionality  :-  to power off LCD panel.  
+dependencies   :-  Should be called when lcd panel is on.
+*********************************************************************/
+void esd_sw_test_lcd_panel_power_off()
+{
+	if (mipi_dsi_pdata && mipi_dsi_pdata->dsi_power_save)
+		mipi_dsi_pdata->dsi_power_save(0);	
+}
+/********************************************************************
+Function Name  :-  esd_sw_test_lcd_panel_power_on
+Arguments 	   :-  None
+Return Value   :-  None
+Functionality  :-  to power on LCD panel.  
+dependencies   :-  Should be called when lcd panel is off.
+*********************************************************************/
+void esd_sw_test_lcd_panel_power_on()
+{
+	if (mipi_dsi_pdata && mipi_dsi_pdata->dsi_power_save)
+		mipi_dsi_pdata->dsi_power_save(1);	
+}
+#endif
+/* LGE_CHANGE_E : LCD ESD Protection*/ 
 
 module_init(mipi_dsi_driver_init);

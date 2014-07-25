@@ -10,6 +10,8 @@ config FB_MSM
 	select FB_CFB_FILLRECT
 	select FB_CFB_COPYAREA
 	select FB_CFB_IMAGEBLIT
+	select SYNC
+	select SW_SYNC
 	---help---
 	  Support for MSM Framebuffer.
 
@@ -38,6 +40,9 @@ config FB_MSM_TRIPLE_BUFFER
 config FB_MSM_MDP_HW
 	bool
 	default n
+
+config FB_MSM_MDSS_COMMON
+	bool
 
 choice
 	prompt "MDP HW version"
@@ -86,6 +91,7 @@ config FB_MSM_MDP40
 
 config FB_MSM_MDSS
 	bool "MDSS HW"
+	select FB_MSM_MDSS_COMMON
 	---help---
 	The Mobile Display Sub System (MDSS) driver supports devices which
 	contain MDSS hardware block.
@@ -100,6 +106,10 @@ config FB_MSM_MDP_NONE
 	  Say Y here if this is mdm platform.
 
 endchoice
+
+config FB_MSM_QPIC
+	bool
+	select FB_MSM_MDSS_COMMON
 
 config FB_MSM_EBI2
 	bool
@@ -122,7 +132,7 @@ config FB_MSM_LVDS
 	default n
 
 config FB_MSM_OVERLAY
-	depends on FB_MSM_MDP40 && ANDROID_PMEM
+	depends on FB_MSM_MDP40
 	bool "MDP4 overlay support"
 	default n
 
@@ -207,20 +217,12 @@ config FB_MSM_MIPI_DSI_NT35510
 	bool
 	select FB_MSM_MIPI_DSI
 
-config FB_MSM_MIPI_DSI_HX8389B
-	bool
-	select FB_MSM_MIPI_DSI
-
 config FB_MSM_MIPI_DSI_ORISE
         bool
         select FB_MSM_MIPI_DSI
         default n
 
 config FB_MSM_MIPI_DSI_NT35516
-	bool
-	select FB_MSM_MIPI_DSI
-
-config FB_MSM_MIPI_DSI_NT35590
 	bool
 	select FB_MSM_MIPI_DSI
 
@@ -360,11 +362,6 @@ config FB_MSM_MIPI_NOVATEK_CMD_HVGA_PT
 	select FB_MSM_MIPI_DSI_NOVATEK
 	default n
 
-config FB_MSM_MIPI_SAMSUNG_VIDEO_HVGA_PT
-	bool
-	select FB_MSM_MIPI_DSI_SAMSUNG
-	default n
-
 config FB_MSM_MIPI_SAMSUNG_CMD_HVGA_PT
 	bool
 	select FB_MSM_MIPI_DSI_SAMSUNG
@@ -400,11 +397,6 @@ config FB_MSM_MIPI_NT35510_CMD_WVGA_PT
 	select FB_MSM_MIPI_DSI_NT35510
 	default n
 
-config FB_MSM_MIPI_HX8389B_VIDEO_QHD_PT
-	bool
-	select FB_MSM_MIPI_DSI_HX8389B
-	default n
-
 config FB_MSM_MIPI_NT35516_VIDEO_QHD_PT
         bool
         select FB_MSM_MIPI_DSI_NT35516
@@ -415,15 +407,6 @@ config FB_MSM_MIPI_NT35516_CMD_QHD_PT
         select FB_MSM_MIPI_DSI_NT35516
         default n
 
-config FB_MSM_MIPI_NT35590_CMD_720P_PT
-	bool
-	select FB_MSM_MIPI_DSI_NT35590
-	default n
-
-config FB_MSM_MIPI_NT35590_VIDEO_720P_PT
-	bool
-	select FB_MSM_MIPI_DSI_NT35590
-	default n
 
 config FB_MSM_MIPI_CHIMEI_WXGA
 	bool "LVDS Chimei WXGA Panel using Toshiba MIPI DSI-to-LVDS bridge."
@@ -597,17 +580,13 @@ config FB_MSM_MIPI_PANEL_DETECT
 	select FB_MSM_MIPI_NOVATEK_CMD_QHD_PT
 	select FB_MSM_MIPI_NOVATEK_VIDEO_HVGA_PT
 	select FB_MSM_MIPI_NOVATEK_CMD_HVGA_PT
-	select FB_MSM_MIPI_SAMSUNG_VIDEO_HVGA_PT
 	select FB_MSM_MIPI_SAMSUNG_CMD_HVGA_PT
 	select FB_MSM_MIPI_NT35510_VIDEO_WVGA_PT
 	select FB_MSM_MIPI_NT35510_CMD_WVGA_PT
-	select FB_MSM_MIPI_HX8389B_VIDEO_QHD_PT
 	select FB_MSM_MIPI_ORISE_VIDEO_720P_PT
 	select FB_MSM_MIPI_ORISE_CMD_720P_PT
 	select FB_MSM_MIPI_NT35516_VIDEO_QHD_PT
 	select FB_MSM_MIPI_NT35516_CMD_QHD_PT
-	select FB_MSM_MIPI_NT35590_CMD_720P_PT
-	select FB_MSM_MIPI_NT35590_VIDEO_720P_PT
 	select FB_MSM_MIPI_SIMULATOR_VIDEO
 	select FB_MSM_MIPI_CHIMEI_WXGA
 	select FB_MSM_MIPI_CHIMEI_WUXGA
@@ -646,13 +625,11 @@ config FB_MSM_LCDC_MIPI_PANEL_AUTO_DETECT
 	select FB_MSM_MIPI_NOVATEK_CMD_QHD_PT
 	select FB_MSM_MIPI_NOVATEK_VIDEO_HVGA_PT
 	select FB_MSM_MIPI_NOVATEK_CMD_HVGA_PT
+	select FB_MSM_MIPI_SAMSUNG_CMD_HVGA_PT
 	select FB_MSM_MIPI_NT35510_VIDEO_WVGA_PT
 	select FB_MSM_MIPI_NT35510_CMD_WVGA_PT
-	select FB_MSM_MIPI_HX8389B_VIDEO_QHD_PT
 	select FB_MSM_MIPI_NT35516_VIDEO_QHD_PT
 	select FM_MSM_MIPI_NT35516_CMD_QHD_PT
-	select FM_MSM_MIPI_NT35590_CMD_720P_PT
-	select FM_MSM_MIPI_NT35590_VIDEO_720P_PT
 	select FB_MSM_MIPI_SIMULATOR_VIDEO
 	---help---
 	  Support for LCDC + MIPI panel auto detect
@@ -671,11 +648,9 @@ config FB_MSM_LVDS_MIPI_PANEL_DETECT
 	select FB_MSM_MIPI_NOVATEK_CMD_QHD_PT
 	select FB_MSM_MIPI_NOVATEK_VIDEO_HVGA_PT
 	select FB_MSM_MIPI_NOVATEK_CMD_HVGA_PT
-	select FB_MSM_MIPI_SAMSUNG_VIDEO_HVGA_PT
 	select FB_MSM_MIPI_SAMSUNG_CMD_HVGA_PT
 	select FB_MSM_MIPI_NT35510_VIDEO_WVGA_PT
 	select FB_MSM_MIPI_NT35510_CMD_WVGA_PT
-	select FB_MSM_MIPI_HX8389B_VIDEO_QHD_PT
 	select FB_MSM_MIPI_ORISE_VIDEO_720P_PT
 	select FB_MSM_MIPI_ORISE_CMD_720P_PT
 	select FB_MSM_MIPI_SIMULATOR_VIDEO
@@ -742,10 +717,6 @@ config FB_MSM_MIPI_NOVATEK_CMD_HVGA_PT_PANEL
 	bool "MIPI NOVATEK CMD HVGA PT Panel"
 	select FB_MSM_MIPI_NOVATEK_CMD_HVGA_PT
 
-config FB_MSM_MIPI_SAMSUNG_VIDEO_HVGA_PT_PANEL
-	bool "MIPI SAMSUNG VIDEO HVGA PT Panel"
-	select FB_MSM_MIPI_SAMSUNG_VIDEO_HVGA_PT
-
 config FB_MSM_MIPI_SAMSUNG_CMD_HVGA_PT_PANEL
 	bool "MIPI SAMSUNG CMD HVGA PT Panel"
 	select FB_MSM_MIPI_SAMSUNG_CMD_HVGA_PT
@@ -786,10 +757,6 @@ config FB_MSM_MIPI_NT35510_CMD_WVGA_PT_PANEL
 	bool "MIPI NT35510 Command WVGA PT Panel"
 	select FB_MSM_MIPI_NT35510_CMD_WVGA_PT
 
-config FB_MSM_MIPI_HX8389B_VIDEO_QHD_PT_PANEL
-	bool "MIPI HX8389B Video QHD PT Panel"
-	select FB_MSM_MIPI_HX8389B_VIDEO_QHD_PT
-
 config FB_MSM_MIPI_NT35516_VIDEO_QHD_PT_PANEL
         bool "MIPI NT35516 Video qHD PT Panel"
         select FB_MSM_MIPI_NT35516_VIDEO_QHD_PT
@@ -797,24 +764,6 @@ config FB_MSM_MIPI_NT35516_VIDEO_QHD_PT_PANEL
 config FB_MSM_MIPI_NT35516_CMD_QHD_PT_PANEL
         bool "MIPI NT35516 Command qHD PT Panel"
         select FB_MSM_MIPI_NT35516_CMD_QHD_PT
-
-config FB_MSM_MIPI_NT35590_CMD_720P_PT_PANEL
-        bool "MIPI NT35590 Command 720p PT Panel"
-        select FB_MSM_MIPI_NT35590_CMD_720P_PT
-	---help---
-	Support for Truly NT35590 panel. This
-	panel supports MIPI DSI interface in
-	Command mode. The panel resolution is
-	720p (720x1280).
-
-config FB_MSM_MIPI_NT35590_VIDEO_720P_PT_PANEL
-	bool "MIPI NT35590 Video 720p PT Panel"
-	select FB_MSM_MIPI_NT35590_VIDEO_720P_PT
-	---help---
-	Support for Truly NT35590 panel. This
-	panel supports MIPI DSI interface in
-	Video mode. The panel resolution is
-	720p (720x1280).
 
 config FB_MSM_MIPI_SIMULATOR_VIDEO_PANEL
 	bool "MIPI Simulator Video Panel"
@@ -921,14 +870,6 @@ config FB_MSM_HDMI_MSM_PANEL_DVI_SUPPORT
 	default n
 	---help---
 	  Support for DVI mode for MSM HDMI 1080p Panel
-
-config FB_MSM_HDMI_MSM_PANEL_HDCP_SUPPORT
-	depends on FB_MSM_HDMI_MSM_PANEL
-	bool "Use HDCP mode"
-	default y
-	---help---
-	  Support for HDCP mode for MSM HDMI 1080p Panel
-	  Choose to enable HDCP
 
 config FB_MSM_HDMI_MSM_PANEL_CEC_SUPPORT
 	depends on FB_MSM_HDMI_MSM_PANEL
@@ -1057,6 +998,21 @@ config FB_MSM_EBI2_PANEL_DETECT
 	default n
 	---help---
 	  Support for EBI2 panel auto detect
+
+config FB_MSM_QPIC_ILI_QVGA_PANEL
+	bool "Qpic MIPI ILI QVGA Panel"
+	select FB_MSM_QPIC
+	---help---
+	  Support for MIPI ILI QVGA (240x320) panel
+	  ILI TECHNOLOGY 9341
+	  with on-chip full display RAM
+	  use parallel interface
+
+config FB_MSM_QPIC_PANEL_DETECT
+	bool "Qpic Panel Detect"
+	select FB_MSM_QPIC_ILI_QVGA_PANEL
+	---help---
+	  Support for Qpic panel auto detect
 
 if FB_MSM_MDSS
 	source "drivers/video/msm/mdss/Kconfig"
