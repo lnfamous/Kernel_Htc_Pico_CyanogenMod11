@@ -25,57 +25,9 @@
 
 #define LED_BUFF_SIZE 50
 
-
-#ifdef CONFIG_HIMAX_WAKE_MOD_POCKETMOD
-#include <linux/towake.h>
-#endif
-
 #ifdef CONFIG_GENERIC_BLN
 #include <linux/bln.h>
-
 struct led_classdev *bln_led_cdev;
-
-static int led_bln_enable(int led_mask)
-{
-
-#ifdef CONFIG_HIMAX_WAKE_MOD_POCKETMOD
-	if (!(is_screen_on)) {
-		if (device_is_pocketed()) {
-			printk(KERN_INFO "[LED]%s: device is pocketed", __func__);
-			return;
-		}
-	}
-#endif
-
-	led_set_brightness(bln_led_cdev, bln_led_cdev->max_brightness);
-	return 0;
-}
-
-static int led_bln_disable(int led_mask)
-{
-
-	led_set_brightness(bln_led_cdev, LED_OFF);
-	return 0;
-}
-
-static int led_bln_power_on(void)
-{
-	return 0;
-}
-
-static int led_bln_power_off(void)
-{
-	return 0;
-}
-
-static struct bln_implementation led_bln = {
-	.enable    = led_bln_enable,
-	.disable   = led_bln_disable,
-	.power_on  = led_bln_power_on,
-	.power_off = led_bln_power_off,
-	.led_count = 1
-};
-
 #endif
 
 static struct class *leds_class;
@@ -348,6 +300,14 @@ static int led_suspend(struct device *dev, pm_message_t state)
 {
 	struct led_classdev *led_cdev = dev_get_drvdata(dev);
 
+#ifdef CONFIG_GENERIC_BLN
+	/* Check if there are notifications
+	 * and return accordingly
+	 */
+	if (bln_is_ongoing())
+		return;
+#endif
+
 	if (led_cdev->flags & LED_CORE_SUSPENDRESUME)
 		led_classdev_suspend(led_cdev);
 
@@ -361,8 +321,40 @@ static int led_resume(struct device *dev)
 	if (led_cdev->flags & LED_CORE_SUSPENDRESUME)
 		led_classdev_resume(led_cdev);
 
+#ifdef CONFIG_GENERIC_BLN
+	/* Release the possible pending wakelock for bln */
+	bln_wakelock_release();
+#endif
+
 	return 0;
 }
+
+#ifdef CONFIG_GENERIC_BLN
+static void enable_touchkey_backlights(void)
+{
+	led_set_brightness(bln_led_cdev, bln_led_cdev->max_brightness);
+}
+
+static void disable_touchkey_backlights(void)
+{
+	led_set_brightness(bln_led_cdev, LED_OFF);
+}
+
+static void enable_led_notification(void)
+{
+	enable_touchkey_backlights();
+}
+
+static void disable_led_notification(void)
+{
+	disable_touchkey_backlights();
+}
+
+static struct bln_implementation touchkey_bln = {
+	.enable    = enable_led_notification,
+	.disable   = disable_led_notification,
+};
+#endif
 
 /**
  * led_classdev_register - register a new object of led_classdev class.
@@ -399,12 +391,10 @@ int led_classdev_register(struct device *parent, struct led_classdev *led_cdev)
 
 	printk(KERN_DEBUG "Registered led device: %s\n",
 			led_cdev->name);
+
 #ifdef CONFIG_GENERIC_BLN
-	if (strcmp(led_cdev, "button-backlight"))
-	{
-		bln_led_cdev = led_cdev;
-		register_bln_implementation(&led_bln);
-	}
+	register_bln_implementation(&touchkey_bln);
+	bln_led_cdev = led_cdev;
 #endif
 
 	return 0;
