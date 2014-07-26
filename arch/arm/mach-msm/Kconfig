@@ -315,6 +315,14 @@ config MACH_PICO
 		help
 			Support for Pico (PDA phone).
 
+config PICO_RESIZE_MEM_ALLOC
+		depends on MACH_PICO
+		bool "Resize memory allocations on Pico"
+		default n
+		help
+			resize the current memory allocation heaps to gain
+			*some* more free RAM for userspace
+
 config MACH_GOLFU
 		depends on ARCH_MSM7X27A
 		depends on !MSM_STACKED_MEMORY
