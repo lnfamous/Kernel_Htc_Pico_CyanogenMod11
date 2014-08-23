@@ -16,6 +16,9 @@
 #include "msm_fb.h"
 #include "mipi_dsi.h"
 #include "mipi_novatek.h"
+#ifdef CONFIG_HIMAX_WAKE_MODS
+#include <linux/towake.h>
+#endif
 /* -----------------------------------------------------------------------------
  *                         External routine declaration
  * ----------------------------------------------------------------------------- */
@@ -493,6 +496,11 @@ static int mipi_novatek_lcd_on(struct platform_device *pdev)
 	struct msm_fb_panel_data *pdata = NULL;
 	struct msm_panel_info *pinfo;
 
+#ifdef CONFIG_HIMAX_WAKE_MODS
+	is_screen_on = 1;
+#endif
+
+
 	mfd = platform_get_drvdata(pdev);
 	if (!mfd)
 		return -ENODEV;
@@ -541,6 +549,10 @@ static int mipi_novatek_lcd_on(struct platform_device *pdev)
 static int mipi_novatek_lcd_off(struct platform_device *pdev)
 {
 	struct msm_fb_data_type *mfd;
+
+#ifdef CONFIG_HIMAX_WAKE_MODS
+	is_screen_on = 0;
+#endif
 
 	PR_DISP_INFO("%s\n", __func__);
 
