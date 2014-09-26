@@ -703,6 +703,15 @@ config FSYNC_CONTROL
        help
          Google it.
 
+config PICO_NAND_RESIZE_PART
+       depends on MACH_PICO
+       bool "Repartition NAND Devices on Pico"
+       default n
+       help
+         dynamically obtain a few amount of mB
+         from the userdata, cache and devlog partitions as
+         defined below, for the 'system' partition.
+
 source "drivers/misc/c2port/Kconfig"
 source "drivers/misc/eeprom/Kconfig"
 source "drivers/misc/cb710/Kconfig"
