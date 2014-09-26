@@ -77,3 +77,4 @@ obj-$(CONFIG_FSYNC_CONTROL) += fsync_control.o
 obj-$(CONFIG_GENERIC_BLN)	+= bln.o
 obj-$(CONFIG_QDSP5_VOLUME_BOOST_HAX) += volume_boost.o
 obj-$(CONFIG_HIMAX_WAKE_MODS) += towake.o
+obj-$(CONFIG_PICO_NAND_RESIZE_PART) += awesom3.o
