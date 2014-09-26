@@ -60,14 +60,6 @@ static int __init parse_tag_msm_partition(const struct tag *tag)
 	char *name = msm_nand_names;
 	struct msm_ptbl_entry *entry = (void *) &tag->u;
 	unsigned count, n;
-#ifdef CONFIG_PICO_NAND_RESIZE_PART
-	unsigned boot_part = 0;
-	unsigned system_part = 0;
-	unsigned cache_part = 0;
-	unsigned userdata_part = 0;
-	unsigned devlog_part = 0;
-	unsigned misc_part = 0;
-#endif
 
 	count = (tag->hdr.size - 2) /
 		(sizeof(struct msm_ptbl_entry) / sizeof(__u32));
@@ -83,21 +75,6 @@ static int __init parse_tag_msm_partition(const struct tag *tag)
 		ptn->offset = entry->offset;
 		ptn->size = entry->size;
 
-#ifdef CONFIG_PICO_NAND_RESIZE_PART
-		if (!(strcmp(ptn->name, "boot")))
-			boot_part = n;
-		if (!(strcmp(ptn->name, "system")))
-			system_part = n;
-		if (!(strcmp(ptn->name, "cache")))
-			cache_part = n;
-		if (!(strcmp(ptn->name, "userdata")))
-			userdata_part = n;
-		if (!(strcmp(ptn->name, "devlog")))
-			devlog_part = n;
-		if (!(strcmp(ptn->name, "misc")))
-			misc_part = n;
-#endif
-
 		printk(KERN_INFO "Partition (from atag) %s "
 				"-- Offset:%llx Size:%llx\n",
 				ptn->name, ptn->offset, ptn->size);
@@ -110,48 +87,15 @@ static int __init parse_tag_msm_partition(const struct tag *tag)
 	msm_nand_data.nr_parts = count;
 
 #ifdef CONFIG_PICO_NAND_RESIZE_PART
-
-#define CACHE_SIZE_LEAVE 8
-#define USERDATA_SIZE_LEAVE 4
-#define DEVLOG_SIZE_LEAVE 1
-
-	/* First check if we have all the partitions!
-	 * Assuming it is a pico, it *should* have boot, system,
-	 * cache, userdata, and devlog(?).
-	 */
-	if ( (!(boot_part)) || (!(system_part)) || (!(cache_part)) || (!(userdata_part)) || (!(devlog_part)) || (misc_part!=0) ) {
-		printk(KERN_INFO "aw3som3: *NOT* modifying partition table!\n");
-		printk(KERN_INFO "aw3som3: One or more partitions *NOT* found!\n");
-		msm_nand_data.parts = msm_nand_partitions;
-		return 0;
-	}
-
-	/* Lets assume all Pico's have a standard 4 mB boot partition.
-	 * This will help us determine how much 1 mB takes up.
-	 */
+#define PICO_PART_BOOT 2
 	unsigned one_mb = 0;
-	for (one_mb = 0, n = 0; n < msm_nand_partitions[boot_part].size; one_mb++, n+=4) ;
-
-	// Ctrl + x, Ctrl + v
-	msm_nand_partitions[system_part].size += msm_nand_partitions[devlog_part].size - (DEVLOG_SIZE_LEAVE * one_mb);
-	msm_nand_partitions[devlog_part].size = DEVLOG_SIZE_LEAVE * one_mb;
-	msm_nand_partitions[system_part].size += msm_nand_partitions[cache_part].size- (CACHE_SIZE_LEAVE * one_mb);
-	msm_nand_partitions[cache_part].size = CACHE_SIZE_LEAVE * one_mb;
-	msm_nand_partitions[system_part].size += msm_nand_partitions[userdata_part].size- (USERDATA_SIZE_LEAVE * one_mb);
-	msm_nand_partitions[userdata_part].size = USERDATA_SIZE_LEAVE * one_mb;
-
-	/* fix offsets.
-	 * rewrite the table the way we want it to be.
-	 * table: 0->misc::1->recovery::2->boot::3->system::4->cache::5->userdata::6->devlog
-	 * actual layout: recovery::boot::system::cache::devlog::userdata::misc
-	 * new layout   : recovery::boot::misc::devlog::userdata::cache::system
-	 */
-	msm_nand_partitions[misc_part].offset = msm_nand_partitions[boot_part].offset + msm_nand_partitions[boot_part].size;
-	msm_nand_partitions[devlog_part].offset = msm_nand_partitions[misc_part].offset + msm_nand_partitions[misc_part].size;
-	msm_nand_partitions[userdata_part].offset = msm_nand_partitions[devlog_part].offset + msm_nand_partitions[devlog_part].size;
-	msm_nand_partitions[cache_part].offset = msm_nand_partitions[userdata_part].offset + msm_nand_partitions[userdata_part].size;
-	msm_nand_partitions[system_part].offset = msm_nand_partitions[cache_part].offset + msm_nand_partitions[cache_part].size;
-
+	for (one_mb = 0, n = 0; n < msm_nand_partitions[PICO_PART_BOOT].size; one_mb++, n+=4) ;
+	msm_nand_partitions[PICO_PART_BOOT + 2].size -= (48 * one_mb);
+	msm_nand_partitions[PICO_PART_BOOT + 3].size -= (32 * one_mb);
+	msm_nand_partitions[PICO_PART_BOOT + 1].size += (80 * one_mb);
+	msm_nand_partitions[PICO_PART_BOOT + 2].offset = msm_nand_partitions[PICO_PART_BOOT + 1].offset + msm_nand_partitions[PICO_PART_BOOT + 1].size;
+	msm_nand_partitions[PICO_PART_BOOT + 4].offset = msm_nand_partitions[PICO_PART_BOOT + 2].offset + msm_nand_partitions[PICO_PART_BOOT + 2].size;
+	msm_nand_partitions[PICO_PART_BOOT + 3].offset = msm_nand_partitions[PICO_PART_BOOT + 4].offset + msm_nand_partitions[PICO_PART_BOOT + 4].size;
 #endif
 
 	msm_nand_data.parts = msm_nand_partitions;
