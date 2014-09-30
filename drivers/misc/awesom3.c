@@ -58,7 +58,7 @@
 #define CACHE_SIZE_LEAVE 8
 
 // no. of mB's to be left in the 'userdata' partition
-#define USERDATA_SIZE_LEAVE 4
+#define USERDATA_SIZE_LEAVE 128
 
 // no. of mB's to be left in the 'devlog' partition
 #define DEVLOG_SIZE_LEAVE 1
