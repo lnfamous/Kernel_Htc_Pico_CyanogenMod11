@@ -314,7 +314,7 @@ static int doubletap2wake_init_sysfs(void) {
 static ssize_t himax_pocket_mod_show(struct device *dev,
 				struct device_attribute *attr, char *buf)
 {
-	return sprintf(buf, "%u\n", sweep2wake_switch);
+	return sprintf(buf, "%u\n", pocket_mod_switch);
 }
 
 static ssize_t himax_pocket_mod_set(struct device *dev,
