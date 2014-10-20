@@ -398,18 +398,16 @@ unsigned sweep2wake_get_touch_status() {
 }
 
 unsigned sweep2sleep_parse() {
-	if (!(sweep2sleep_only_switch))
+	if (is_screen_on)
 		return 1;
 
-	if (is_screen_on)
+	if (sweep2sleep_only_switch)
 		return 0;
 
 	return 1;
-
 }
 
 void sweep2wake_func(int *x/*, int *y*/) {
-
 	if (!sweep2wake_get_touch_status()) {
 		sweep2wake_set_touch(1);
 		sweep2wake_init_x = *x;
