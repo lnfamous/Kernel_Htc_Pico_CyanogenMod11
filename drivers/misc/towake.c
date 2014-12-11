@@ -49,13 +49,13 @@ unsigned doubletap2wake_switch = 0;
 #endif //HIMAX_WAKE_MOD_DOUBLETAP2WAKE
 #define DT2W_TIMEOUT_MAX 1000 // 1 second
 
-unsigned knock_code_switch = 1;
-
 static unsigned doubletap2wake_max_timeout = 400;
 static unsigned doubletap2wake_delta = 50;
 static s64 doubletap2wake_time[2] = {0, 0};
 static unsigned int doubletap2wake_x = 0;
 static unsigned int doubletap2wake_y = 0;
+
+unsigned knock_code_switch = 1;
 
 unsigned is_screen_on;
 
