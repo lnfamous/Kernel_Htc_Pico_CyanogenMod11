@@ -27,6 +27,8 @@ int doubletap2wake_check_n_reset(void);
 void doubletap2wake_func(int *x, int *y);
 
 extern unsigned knock_code_switch;
+int knock_code_check_n_reset(void);
+void knock_code_func(int *x, int *y);
 
 extern unsigned pocket_mod_switch;
 

@@ -176,7 +176,7 @@ int i2c_himax_master_write(struct i2c_client *client, uint8_t *data, uint8_t len
 
 	if (retry == HIMAX_I2C_RETRY_TIMES) {
 		printk(KERN_ERR "[TS]%s: i2c_write_block retry over %d\n",
-		       __func__, HIMAX_I2C_RETRY_TIMES);
+			   __func__, HIMAX_I2C_RETRY_TIMES);
 		return -EIO;
 	}
 	return 0;
@@ -201,7 +201,7 @@ int i2c_himax_read_command(struct i2c_client *client, uint8_t length, uint8_t *d
 	}
 	if (retry == HIMAX_I2C_RETRY_TIMES) {
 		printk(KERN_ERR "[TS]%s: i2c_read_block retry over %d\n",
-		       __func__, HIMAX_I2C_RETRY_TIMES);
+			   __func__, HIMAX_I2C_RETRY_TIMES);
 		return -EIO;
 	}
 	return 0;
@@ -566,7 +566,7 @@ static void himax_ts_work_func(struct work_struct *work)
 		/* finger leave */
 		input_report_abs(ts->input_dev, ABS_MT_TOUCH_MAJOR, 0);
 		input_report_abs(ts->input_dev, ABS_MT_PRESSURE, 0);
-      input_report_key(ts->input_dev, BTN_TOUCH, 0);
+	  input_report_key(ts->input_dev, BTN_TOUCH, 0);
 #ifdef INPUT_PROTOCOL_A
 		input_mt_sync(ts->input_dev);
 #else
@@ -591,6 +591,11 @@ static void himax_ts_work_func(struct work_struct *work)
 			if (!(is_screen_on))
 				if (!(doubletap2wake_check_n_reset()))
 					doubletap2wake_func(&x, &y);
+		}
+		if (knock_code_switch) {
+			if (!(is_screen_on))
+				if (!(knock_code_check_n_reset()))
+					knock_code_func(&x, &y);
 		}
 #endif
 	} else {
@@ -626,7 +631,7 @@ static void himax_ts_work_func(struct work_struct *work)
 				input_report_abs(ts->input_dev, ABS_MT_POSITION_X, x);
 				input_report_abs(ts->input_dev, ABS_MT_POSITION_Y, y);
 				input_report_abs(ts->input_dev, ABS_MT_PRESSURE, w);
-            	input_report_key(ts->input_dev, BTN_TOUCH, 1);
+				input_report_key(ts->input_dev, BTN_TOUCH, 1);
 
 #ifdef INPUT_PROTOCOL_A
 				input_report_abs(ts->input_dev, ABS_MT_TRACKING_ID, loop_i);
@@ -793,7 +798,7 @@ static int himax8526a_probe(struct i2c_client *client, const struct i2c_device_i
 	set_bit(BTN_TOUCH, ts->input_dev->keybit);
 	//set_bit(KEY_APP_SWITCH, ts->input_dev->keybit);
 	set_bit(INPUT_PROP_DIRECT, ts->input_dev->propbit);
-	
+
 #ifdef INPUT_PROTOCOL_A
 	ts->input_dev->mtsize = HIMAX8526A_FINGER_SUPPORT_NUM;
 	input_set_abs_params(ts->input_dev, ABS_MT_TRACKING_ID,

@@ -56,6 +56,11 @@ static unsigned int doubletap2wake_x = 0;
 static unsigned int doubletap2wake_y = 0;
 
 unsigned knock_code_switch = 1;
+static unsigned knock_code_max_timeout = 400;
+static unsigned knock_code_delta = 50;
+static s64 knock_code_time[2] = {0, 0};
+static unsigned int knock_code_x = 0;
+static unsigned int knock_code_y = 0;
 
 unsigned is_screen_on;
 
@@ -447,7 +452,6 @@ int doubletap2wake_check_n_reset(void) {
 	return 0;
 }
 
-
 void doubletap2wake_func(int *x, int *y) {
 
 	if ( (doubletap2wake_time[0]) && (!(doubletap2wake_time[1])) ) {
@@ -463,6 +467,42 @@ void doubletap2wake_func(int *x, int *y) {
 	}
 	doubletap2wake_time[0] = 0;
 	doubletap2wake_time[1] = 0;
+	return;
+
+}
+
+int knock_code_check_n_reset(void) {
+
+	if (knock_code_time[0] == 0) {
+		knock_code_time[0] = ktime_to_ms(ktime_get());
+		return 0;
+	}
+
+	knock_code_time[1] = ktime_to_ms(ktime_get());
+
+	if ((knock_code_time[1]-knock_code_time[0])>knock_code_max_timeout) {
+		knock_code_time[0] = ktime_to_ms(ktime_get());
+		knock_code_time[1] = 0;
+	}
+
+	return 0;
+}
+
+void knock_code_func(int *x, int *y) {
+
+	if ( (knock_code_time[0]) && (!(knock_code_time[1])) ) {
+		knock_code_x = *x;
+		knock_code_y = *y;
+		return;
+	}
+
+	if ((abs((*x-knock_code_x)) < knock_code_delta)
+		&& (abs((*y-knock_code_y)) < knock_code_delta)
+		) {
+			presspwr();
+	}
+	knock_code_time[0] = 0;
+	knock_code_time[1] = 0;
 	return;
 
 }
