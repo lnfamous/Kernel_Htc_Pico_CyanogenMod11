@@ -26,6 +26,8 @@ extern unsigned doubletap2wake_switch;
 int doubletap2wake_check_n_reset(void);
 void doubletap2wake_func(int *x, int *y);
 
+extern unsigned knock_code_switch;
+
 extern unsigned pocket_mod_switch;
 
 int device_is_pocketed();
