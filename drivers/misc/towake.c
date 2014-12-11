@@ -61,6 +61,13 @@ static unsigned knock_code_delta = 50;
 static s64 knock_code_time[2] = {0, 0};
 static unsigned int knock_code_x = 0;
 static unsigned int knock_code_y = 0;
+int knock_code_pattern[4] = {1,2,3,4};
+int knock_code_input[4]   = {0,0,0,0};
+int knock_code_x_arr[4]   = {0,0,0,0};
+int knock_code_y_arr[4]   = {0,0,0,0};
+int knock_code_touch_count = 0;
+int knock_code_mid_x = 0;
+int knock_code_mid_y = 0;
 
 unsigned is_screen_on;
 
@@ -474,7 +481,10 @@ void doubletap2wake_func(int *x, int *y) {
 int knock_code_check_n_reset(void) {
 
 	if (knock_code_time[0] == 0) {
+		//knock_code_touch_count = 0;
+
 		knock_code_time[0] = ktime_to_ms(ktime_get());
+		printk(KERN_INFO "%s: knock_code begin\n", __func__);
 		return 0;
 	}
 
@@ -482,7 +492,26 @@ int knock_code_check_n_reset(void) {
 
 	if ((knock_code_time[1]-knock_code_time[0])>knock_code_max_timeout) {
 		knock_code_time[0] = ktime_to_ms(ktime_get());
+		printk(KERN_INFO "%s: knock_code reset\n", __func__);
+
+		knock_code_input[0] = 0;
+		knock_code_input[1] = 0;
+		knock_code_input[2] = 0;
+		knock_code_input[3] = 0;
+
+		knock_code_x_arr[0] = 0;
+		knock_code_x_arr[1] = 0;
+		knock_code_x_arr[2] = 0;
+		knock_code_x_arr[3] = 0;
+
+		knock_code_y_arr[0] = 0;
+		knock_code_y_arr[1] = 0;
+		knock_code_y_arr[2] = 0;
+		knock_code_y_arr[3] = 0;
+
 		knock_code_time[1] = 0;
+
+		knock_code_touch_count = 0;
 	}
 
 	return 0;
@@ -490,20 +519,197 @@ int knock_code_check_n_reset(void) {
 
 void knock_code_func(int *x, int *y) {
 
-	if ( (knock_code_time[0]) && (!(knock_code_time[1])) ) {
+	//if ( knock_code_time[1] == 0 ) {
+	//	return;
+	//}
+
+	if (knock_code_touch_count == 0) {
 		knock_code_x = *x;
 		knock_code_y = *y;
+		knock_code_x_arr[knock_code_touch_count] = *x;
+		knock_code_y_arr[knock_code_touch_count] = *y;
+		knock_code_input[knock_code_touch_count] = 1;
+		knock_code_touch_count += 1;
+		printk(KERN_INFO "%s: kctc = 0, x = %d, y = %d\n", __func__, *x, *y);
+		knock_code_time[0] = knock_code_time[1];
+		knock_code_time[1] = 0;
 		return;
 	}
 
-	if ((abs((*x-knock_code_x)) < knock_code_delta)
-		&& (abs((*y-knock_code_y)) < knock_code_delta)
-		) {
-			presspwr();
+
+	if (knock_code_touch_count == 1) {
+		if ((abs(*x - knock_code_x)) > knock_code_delta) {
+			if (*x > knock_code_x) { //to right
+				if ((abs(*y - knock_code_y)) > (knock_code_delta + 25)) {
+					if (*y < knock_code_y) {
+						knock_code_input[knock_code_touch_count] = 2;
+						knock_code_input[(knock_code_touch_count-1)] = 4;
+					} else {
+						knock_code_input[knock_code_touch_count] = 3;
+					}
+				} else {
+					knock_code_input[knock_code_touch_count] = 2;
+				}
+			} else if (*x < knock_code_x) { //to left
+				if ((abs(*y - knock_code_y)) > (knock_code_delta + 25)) {
+					if (*y < knock_code_y) { //above
+						knock_code_input[knock_code_touch_count] = 1;
+						knock_code_input[(knock_code_touch_count-1)] = 3;
+					} else {
+						knock_code_input[knock_code_touch_count] = 1;
+						knock_code_input[(knock_code_touch_count-1)] = 2;
+					}
+				} else {
+					knock_code_input[knock_code_touch_count] = 1;
+					knock_code_input[(knock_code_touch_count-1)] = 2;
+				}
+			}
+		} else {
+			if ((abs(*y - knock_code_y)) > (knock_code_delta + 25)) {
+				if (*y > knock_code_y) {
+					knock_code_input[knock_code_touch_count] = 4;
+				} else {
+					knock_code_input[knock_code_touch_count] = 1;
+					knock_code_input[(knock_code_touch_count-1)] = 4;
+				}
+			} else {
+				knock_code_input[knock_code_touch_count] = 1;
+			}
+		}
+
+		knock_code_touch_count += 1;
+		knock_code_x = *x;
+		knock_code_y = *y;
+		knock_code_x_arr[knock_code_touch_count] = *x;
+		knock_code_y_arr[knock_code_touch_count] = *y;
+		printk(KERN_INFO "%s: kctc = 1, x = %d, y = %d\n", __func__, *x, *y);
+		knock_code_time[0] = knock_code_time[1];
+		knock_code_time[1] = 0;
+		return;
 	}
-	knock_code_time[0] = 0;
-	knock_code_time[1] = 0;
-	return;
+
+
+	if (knock_code_touch_count == 2) {
+		int a = 0;
+		if (abs(*x - knock_code_x) > knock_code_delta) {
+			if ((knock_code_input[0] == 1)||(knock_code_input[0] == 4)) {
+				a = (abs(knock_code_x_arr[0] - knock_code_x) / 2);
+				knock_code_mid_x = knock_code_x_arr[0] + a;
+			} else if ((knock_code_input[1] == 1)||(knock_code_input[1] == 4)) {
+				a = (abs(knock_code_x_arr[1] - knock_code_x) / 2);
+				knock_code_mid_x = knock_code_x_arr[1] + a;
+			}
+		} else {
+			if ((knock_code_input[0] == 1)||(knock_code_input[0] == 4)) {
+				knock_code_mid_x = knock_code_x_arr[0] + knock_code_delta;
+			} else if ((knock_code_input[1] == 1)||(knock_code_input[1] == 4)) {
+				knock_code_mid_x = knock_code_x_arr[1] + knock_code_delta;
+			}
+		}
+
+
+		if (abs(*y - knock_code_y) > knock_code_delta) {
+			if ((knock_code_input[0] == 1)||(knock_code_input[0] == 2)) {
+				a = (abs(knock_code_y_arr[0] - knock_code_y) / 2);
+				knock_code_mid_y = knock_code_y_arr[0] + a;
+			} else if ((knock_code_input[1] == 1)||(knock_code_input[1] == 2)) {
+				a = (abs(knock_code_y_arr[1] - knock_code_y) / 2);
+				knock_code_mid_y = knock_code_y_arr[1] + a;
+			}
+		} else {
+			if ((knock_code_input[0] == 1)||(knock_code_input[0] == 2)) {
+				knock_code_mid_y = knock_code_y_arr[0] + knock_code_delta;
+			} else if ((knock_code_input[1] == 1)||(knock_code_input[1] == 2)) {
+				knock_code_mid_y = knock_code_y_arr[1] + knock_code_delta;
+			}
+		}
+
+		printk(KERN_INFO "%s: kcmidx = %d\n", __func__, knock_code_mid_x);
+		printk(KERN_INFO "%s: kcmidy = %d\n", __func__, knock_code_mid_y);
+
+
+		if (*x > knock_code_mid_x) { //right
+			if (*y < knock_code_mid_y) {
+				knock_code_input[knock_code_touch_count] = 2;
+			} else {
+				knock_code_input[knock_code_touch_count] = 3;
+			}
+		} else {
+			if (*y < knock_code_mid_y) {
+				knock_code_input[knock_code_touch_count] = 1;
+			} else {
+				knock_code_input[knock_code_touch_count] = 4;
+			}
+		}
+
+		knock_code_touch_count += 1;
+		knock_code_x = *x;
+		knock_code_y = *y;
+		knock_code_x_arr[knock_code_touch_count] = *x;
+		knock_code_y_arr[knock_code_touch_count] = *y;
+		printk(KERN_INFO "%s: kctc = 2, x = %d, y = %d\n", __func__, *x, *y);
+		knock_code_time[0] = knock_code_time[1];
+		knock_code_time[1] = 0;
+		return;
+
+	}
+
+	if (knock_code_touch_count == 3) {
+
+		if (*x > knock_code_mid_x) { //right
+			if (*y < knock_code_mid_y) {
+				knock_code_input[knock_code_touch_count] = 2;
+			} else {
+				knock_code_input[knock_code_touch_count] = 3;
+			}
+		} else {
+			if (*y < knock_code_mid_y) {
+				knock_code_input[knock_code_touch_count] = 1;
+			} else {
+				knock_code_input[knock_code_touch_count] = 4;
+			}
+		}
+
+		knock_code_touch_count += 1;
+		knock_code_x = *x;
+		knock_code_y = *y;
+		knock_code_x_arr[knock_code_touch_count] = *x;
+		knock_code_y_arr[knock_code_touch_count] = *y;
+		printk(KERN_INFO "%s: kctc = 3, x = %d, y = %d\n", __func__, *x, *y);
+		//return;
+
+		knock_code_touch_count = 0;
+		printk(KERN_INFO "%s: kcin[0] = %d\n", __func__, knock_code_input[0]);
+		printk(KERN_INFO "%s: kcin[1] = %d\n", __func__, knock_code_input[1]);
+		printk(KERN_INFO "%s: kcin[2] = %d\n", __func__, knock_code_input[2]);
+		printk(KERN_INFO "%s: kcin[3] = %d\n", __func__, knock_code_input[3]);
+		knock_code_time[0] = knock_code_time[1] = 0;
+
+		knock_code_time[0] = knock_code_time[1];
+		knock_code_time[1] = 0;
+
+		if (
+			(knock_code_pattern[0] == knock_code_input[0])
+			(knock_code_pattern[1] == knock_code_input[1])
+			(knock_code_pattern[2] == knock_code_input[2])
+			(knock_code_pattern[3] == knock_code_input[3])
+			) {
+			//presspwr(); debug
+		}
+
+
+
+		return;
+
+	}
+
+
+	//if ((abs((*x-knock_code_x)) < knock_code_delta)
+	//	&& (abs((*y-knock_code_y)) < knock_code_delta)
+	//	) {
+	//		presspwr();
+	//}
+
 
 }
 
