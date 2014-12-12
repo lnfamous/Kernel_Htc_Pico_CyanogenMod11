@@ -480,19 +480,16 @@ void doubletap2wake_func(int *x, int *y) {
 
 int knock_code_check_n_reset(void) {
 
+	printk(KERN_INFO "%s: knock_code_time[0] = %lld\n", __func__, knock_code_time[0]);
+	printk(KERN_INFO "%s: knock_code_time[1] = %lld\n", __func__, knock_code_time[1]);
+
 	if (knock_code_time[0] == 0) {
-		//knock_code_touch_count = 0;
 
 		knock_code_time[0] = ktime_to_ms(ktime_get());
+		knock_code_time[1] = 0;
 		printk(KERN_INFO "%s: knock_code begin\n", __func__);
-		return 0;
-	}
 
-	knock_code_time[1] = ktime_to_ms(ktime_get());
-
-	if ((knock_code_time[1]-knock_code_time[0])>knock_code_max_timeout) {
-		knock_code_time[0] = ktime_to_ms(ktime_get());
-		printk(KERN_INFO "%s: knock_code reset\n", __func__);
+		knock_code_touch_count = 0;
 
 		knock_code_input[0] = 0;
 		knock_code_input[1] = 0;
@@ -509,19 +506,38 @@ int knock_code_check_n_reset(void) {
 		knock_code_y_arr[2] = 0;
 		knock_code_y_arr[3] = 0;
 
-		knock_code_time[1] = 0;
+		return 0;
 
-		knock_code_touch_count = 0;
+	} else if ((knock_code_time[0]) && (!knock_code_time[1])) {
+
+		knock_code_time[1] = ktime_to_ms(ktime_get());
+
+		printk(KERN_INFO "%s: knock_code_time[1] - knock_code_time[0] = %lld\n", __func__, (knock_code_time[1]-knock_code_time[0]));
+
+		if ((knock_code_time[1]-knock_code_time[0])>knock_code_max_timeout) {
+
+			printk(KERN_INFO "%s: knock_code reset\n", __func__);
+			knock_code_time[0] = knock_code_time[1];
+			knock_code_time[1] = 0;
+
+			knock_code_touch_count = 0;
+			knock_code_input[0] = 0;
+			knock_code_input[1] = 0;
+			knock_code_input[2] = 0;
+			knock_code_input[3] = 0;
+
+			return 0;
+
+		}
 	}
 
 	return 0;
+
 }
 
 void knock_code_func(int *x, int *y) {
 
-	//if ( knock_code_time[1] == 0 ) {
-	//	return;
-	//}
+	printk(KERN_INFO "%s: knock_code_touch_count = %d\n", __func__, knock_code_touch_count);
 
 	if (knock_code_touch_count == 0) {
 		knock_code_x = *x;
@@ -531,7 +547,6 @@ void knock_code_func(int *x, int *y) {
 		knock_code_input[knock_code_touch_count] = 1;
 		knock_code_touch_count += 1;
 		printk(KERN_INFO "%s: kctc = 0, x = %d, y = %d\n", __func__, *x, *y);
-		knock_code_time[0] = knock_code_time[1];
 		knock_code_time[1] = 0;
 		return;
 	}
@@ -678,20 +693,22 @@ void knock_code_func(int *x, int *y) {
 		printk(KERN_INFO "%s: kctc = 3, x = %d, y = %d\n", __func__, *x, *y);
 		//return;
 
-		knock_code_touch_count = 0;
+
 		printk(KERN_INFO "%s: kcin[0] = %d\n", __func__, knock_code_input[0]);
 		printk(KERN_INFO "%s: kcin[1] = %d\n", __func__, knock_code_input[1]);
 		printk(KERN_INFO "%s: kcin[2] = %d\n", __func__, knock_code_input[2]);
 		printk(KERN_INFO "%s: kcin[3] = %d\n", __func__, knock_code_input[3]);
+
 		knock_code_time[0] = knock_code_time[1] = 0;
+		knock_code_touch_count = 0;
 
 		knock_code_time[0] = knock_code_time[1];
 		knock_code_time[1] = 0;
 
 		if (
-			(knock_code_pattern[0] == knock_code_input[0])
-			(knock_code_pattern[1] == knock_code_input[1])
-			(knock_code_pattern[2] == knock_code_input[2])
+			(knock_code_pattern[0] == knock_code_input[0]) &&
+			(knock_code_pattern[1] == knock_code_input[1]) &&
+			(knock_code_pattern[2] == knock_code_input[2]) &&
 			(knock_code_pattern[3] == knock_code_input[3])
 			) {
 			//presspwr(); debug
@@ -702,14 +719,6 @@ void knock_code_func(int *x, int *y) {
 		return;
 
 	}
-
-
-	//if ((abs((*x-knock_code_x)) < knock_code_delta)
-	//	&& (abs((*y-knock_code_y)) < knock_code_delta)
-	//	) {
-	//		presspwr();
-	//}
-
 
 }
 
@@ -737,3 +746,4 @@ static int __init towake_init(void)
 }
 
 late_initcall(towake_init);
+
