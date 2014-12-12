@@ -641,15 +641,9 @@ void knock_code_func(int *x, int *y) {
 
 			//find average x of first 2 knocks
 			int avg = 0;
-			avg = ((abs(knock_code_y_arr[0] - knock_code_y_arr[1])) / 2);
-			printk(KERN_INFO "%s: delta y / 2 = %d\n", __func__, avg);
-			if (knock_code_y_arr[0] < knock_code_y_arr[1]) {
-				knock_code_mid_y = knock_code_y_arr[0] + avg;
-				knock_code_buffer_y = knock_code_y_arr[0] - avg;
-			} else {
-				knock_code_mid_y = knock_code_y_arr[0] - avg;
-				knock_code_buffer_y = knock_code_y_arr[0] + avg;
-			}
+			avg = ((abs(knock_code_y_arr[0] + knock_code_y_arr[1])) / 2);
+			knock_code_mid_y = avg + a;
+			knock_code_buffer_y = avg - a;
 			//find average x of first 2 knocks
 
 			printk(KERN_INFO "%s: knock_code_mid_y = %d\n", __func__, knock_code_mid_y);
@@ -672,16 +666,9 @@ void knock_code_func(int *x, int *y) {
 
 			//find average x of first 2 knocks
 			int avg = 0;
-			avg = ((abs(knock_code_x_arr[0] - knock_code_x_arr[1])) / 2);
-			printk(KERN_INFO "%s: delta x / 2 = %d\n", __func__, avg);
-			if (knock_code_x_arr[0] < knock_code_x_arr[1]) {
-				knock_code_mid_x = knock_code_x_arr[0] + avg;
-				knock_code_buffer_x = knock_code_x_arr[0] - avg;
-			} else {
-				knock_code_mid_x = knock_code_x_arr[0] - avg;
-				knock_code_buffer_x = knock_code_x_arr[0] + avg;
-			}
-			//find average x of first 2 knocks
+			avg = ((abs(knock_code_x_arr[0] + knock_code_x_arr[1])) / 2);
+			knock_code_mid_x = avg + a;
+			knock_code_buffer_x = avg - a;
 
 			printk(KERN_INFO "%s: knock_code_mid_x = %d\n", __func__, knock_code_mid_x);
 			printk(KERN_INFO "%s: knock_code_buffer_x = %d\n", __func__, knock_code_buffer_x);
