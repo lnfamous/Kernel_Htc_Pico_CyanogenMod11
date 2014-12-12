@@ -247,7 +247,6 @@ static int sweep2wake_init_sysfs(void) {
 }
 // Sweep2Wake SysFS (end)
 
-
 // DoubleTap2Wake SysFS
 static ssize_t doubletap2wake_switch_get(struct device *dev,
 			struct device_attribute *attr, char *buf)
@@ -305,7 +304,6 @@ static struct attribute_group doubletap2wake_group =
 	.attrs  = doubletap2wake_attributes,
 };
 
-
 static int doubletap2wake_init_sysfs(void) {
 
 	int rc = 0;
@@ -326,6 +324,80 @@ static int doubletap2wake_init_sysfs(void) {
 	return rc;
 }
 // DoubleTap2Wake SysFS (end)
+
+// Knock Code SysFS
+static ssize_t knock_code_switch_get(struct device *dev,
+			struct device_attribute *attr, char *buf)
+{
+	return sprintf(buf, "%u\n", knock_code_switch);
+}
+
+static ssize_t knock_code_switch_set(struct device * dev,
+		struct device_attribute * attr, const char * buf, size_t size)
+{
+	unsigned int val = 0;
+
+	sscanf(buf, "%u\n", &val);
+
+	if ( ( val == 0 ) || ( val == 1 ) )
+		knock_code_switch = val;
+
+	return size;
+}
+
+static DEVICE_ATTR(enable_knock_code,  0777, knock_code_switch_get, knock_code_switch_set);
+/* ------------------------------ */
+static ssize_t knock_code_pattern_get(struct device *dev,
+			struct device_attribute *attr, char *buf)
+{
+	return sprintf(buf, "%d\n", knock_code_pattern[0],knock_code_pattern[1],knock_code_pattern[2],knock_code_pattern[3]);
+}
+
+static ssize_t knock_code_pattern_set(struct device * dev,
+		struct device_attribute * attr, const char * buf, size_t size)
+{
+	if (!( (buf[0] - '0') == (buf[1] - '0') )) {
+		knock_code_pattern[0] = buf[0] - '0';
+		knock_code_pattern[1] = buf[1] - '0';
+		knock_code_pattern[2] = buf[2] - '0';
+		knock_code_pattern[3] = buf[3] - '0';
+	}
+
+	return size;
+}
+
+static DEVICE_ATTR(knock_code_pattern,  0777, knock_code_pattern_get, knock_code_pattern_set);
+
+static struct attribute *knock_code_attributes[] =
+{
+	&dev_attr_enable_knock_code.attr,
+	&dev_attr_knock_code_pattern.attr,
+	NULL
+};
+
+static struct attribute_group knock_code_group =
+{
+	.attrs  = knock_code_attributes,
+};
+
+static int knock_code_init_sysfs(void) {
+	int rc = 0;
+
+	struct kobject *knock_code_kobj;
+	knock_code_kobj = kobject_create_and_add("knock_code", android_touch_kobj);
+
+	dev_attr_enable_knock_code.attr.name = "enable";
+	dev_attr_knock_code_pattern.attr.name = "pattern";
+
+	rc = sysfs_create_group(knock_code_kobj,
+			&knock_code_group);
+
+	if (unlikely(rc < 0))
+		pr_err("knock_code: sysfs_create_group failed: %d\n", rc);
+
+	return rc;
+}
+// Knock Code SysFS (end)
 
 // PocketMod
 static ssize_t himax_pocket_mod_show(struct device *dev,
@@ -832,6 +904,10 @@ static int __init towake_init(void)
 	ret = doubletap2wake_init_sysfs();
 	if (unlikely(ret < 0))
 		pr_err("doubletap2wake_init_sysfs failed!\n");
+
+	ret = knock_code_init_sysfs();
+	if (unlikely(ret < 0))
+		pr_err("knock_code_init_sysfs failed!\n");
 
 	pocket_mod_init_sysfs();
 	if (unlikely(ret < 0))
