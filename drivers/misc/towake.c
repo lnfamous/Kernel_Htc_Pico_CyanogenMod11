@@ -687,15 +687,28 @@ void knock_code_func(int *x, int *y) {
 
 	if (knock_code_touch_count == 2) { //third touch. lot to do here.
 
-		if (*y < knock_code_buffer_y) {
+		if (knock_code_y_arr[2] < knock_code_buffer_y) {
 			printk(KERN_INFO "%s: y < knock_code_buffer_y = %d < %d\n", __func__, *y, knock_code_buffer_y);
 			knock_code_mid_y = knock_code_buffer_y;
+
+			if ((abs(knock_code_y_arr[2] - knock_code_y_arr[1])) > (a)) {
+				printk(KERN_INFO "%s: ky3 - ky2 > a + delta %d < %d\n", __func__, (abs(knock_code_y_arr[1] - knock_code_y_arr[2])), (a + knock_code_delta));
+				knock_code_mid_y = ((knock_code_y_arr[1] + knock_code_y_arr[2]) / 2);
+			}
+
+
 			knock_code_tmp_var = 1;
 		}
 
-		if (*x < knock_code_buffer_x) {
+		if (knock_code_x_arr[2] < knock_code_buffer_x) {
 			printk(KERN_INFO "%s: x < knock_code_buffer_x = %d < %d\n", __func__, *x, knock_code_buffer_x);
 			knock_code_mid_x = knock_code_buffer_x;
+
+			if ((abs(knock_code_x_arr[2] - knock_code_x_arr[1])) > (a)) {
+				printk(KERN_INFO "%s: kx3 - kx2 > a + delta %d < %d\n", __func__, (abs(knock_code_x_arr[1] - knock_code_x_arr[2])), (a + knock_code_delta));
+				knock_code_mid_x = ((knock_code_x_arr[1] + knock_code_x_arr[2]) / 2);
+			}
+
 			knock_code_tmp_var = 1;
 		}
 
@@ -712,11 +725,18 @@ void knock_code_func(int *x, int *y) {
 
 	if (knock_code_touch_count == 3) {
 
-		if (*y < knock_code_buffer_y) {
+		if (knock_code_y_arr[3] < knock_code_buffer_y) {
 			if (knock_code_tmp_var == 0) {
 				printk(KERN_INFO "%s: y < knock_code_buffer_y = %d < %d\n", __func__, *y, knock_code_buffer_y);
 				knock_code_mid_y = knock_code_buffer_y;
 			}
+
+			if ((abs(knock_code_y_arr[3] - knock_code_y_arr[2])) > (a + knock_code_delta)) {
+				printk(KERN_INFO "%s: ky4 - ky3 > a + delta %d < %d\n", __func__, (abs(knock_code_y_arr[1] - knock_code_y_arr[2])), (a + knock_code_delta));
+				knock_code_mid_y = ((knock_code_y_arr[1] + knock_code_y_arr[2]) / 2);
+			}
+
+
 		}
 
 		if (*x < knock_code_buffer_x) {
@@ -724,8 +744,13 @@ void knock_code_func(int *x, int *y) {
 				printk(KERN_INFO "%s: x < knock_code_buffer_x = %d < %d\n", __func__, *x, knock_code_buffer_x);
 				knock_code_mid_x = knock_code_buffer_x;
 			}
-		}
 
+			if ((abs(knock_code_x_arr[3] - knock_code_x_arr[2])) > (a + knock_code_delta)) {
+				printk(KERN_INFO "%s: kx4 - kx3 > a + delta %d < %d\n", __func__, (abs(knock_code_x_arr[1] - knock_code_x_arr[2])), (a + knock_code_delta));
+				knock_code_mid_x = ((knock_code_x_arr[1] + knock_code_x_arr[2]) / 2);
+			}
+
+		}
 
 		knock_code_x = *x;
 		knock_code_y = *y;
@@ -786,6 +811,7 @@ void knock_code_func(int *x, int *y) {
 		(knock_code_pattern[3] == knock_code_input[3])
 		) {
 		printk(KERN_INFO "%s: pattern matches!\n", __func__);
+		presspwr();
 		printk(KERN_INFO "%s: ---------------------------------------------------\n", __func__);
 	}
 
