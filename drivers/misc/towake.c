@@ -604,21 +604,33 @@ void knock_code_func(int *x, int *y) {
 	}
 
 
-	if (knock_code_touch_count == 2) {
+	if (knock_code_touch_count == 2) { //third touch. lot to do here.
 		int a = 0;
 		if (abs(*x - knock_code_x) > knock_code_delta) {
 			if ((knock_code_input[0] == 1)||(knock_code_input[0] == 4)) {
 				a = (abs(knock_code_x_arr[0] - knock_code_x) / 2);
-				knock_code_mid_x = knock_code_x_arr[0] + a;
+				if ( *x < knock_code_x ) {
+					knock_code_mid_x = knock_code_x_arr[0] - a;
+					//todo: add y check here, fixup kcin
+				} else {
+					knock_code_mid_x = knock_code_x_arr[0] + a;
+				}
 			} else if ((knock_code_input[1] == 1)||(knock_code_input[1] == 4)) {
 				a = (abs(knock_code_x_arr[1] - knock_code_x) / 2);
-				knock_code_mid_x = knock_code_x_arr[1] + a;
+				if ( *x < knock_code_x ) {
+					knock_code_mid_x = knock_code_x_arr[1] - a;
+					//todo: add y check here, fixup kcin
+				} else {
+					knock_code_mid_x = knock_code_x_arr[1] + a;
+				}
 			}
 		} else {
 			if ((knock_code_input[0] == 1)||(knock_code_input[0] == 4)) {
 				knock_code_mid_x = knock_code_x_arr[0] + knock_code_delta;
+				//todo: add y check here?
 			} else if ((knock_code_input[1] == 1)||(knock_code_input[1] == 4)) {
 				knock_code_mid_x = knock_code_x_arr[1] + knock_code_delta;
+				//todo: add y check here?
 			}
 		}
 
@@ -626,16 +638,28 @@ void knock_code_func(int *x, int *y) {
 		if (abs(*y - knock_code_y) > knock_code_delta) {
 			if ((knock_code_input[0] == 1)||(knock_code_input[0] == 2)) {
 				a = (abs(knock_code_y_arr[0] - knock_code_y) / 2);
-				knock_code_mid_y = knock_code_y_arr[0] + a;
+				if ( *y < knock_code_x ) {
+					knock_code_mid_y = knock_code_y_arr[0] - a;
+				} else {
+					knock_code_mid_y = knock_code_y_arr[0] + a;
+				}
 			} else if ((knock_code_input[1] == 1)||(knock_code_input[1] == 2)) {
 				a = (abs(knock_code_y_arr[1] - knock_code_y) / 2);
-				knock_code_mid_y = knock_code_y_arr[1] + a;
+				if ( *y < knock_code_x ) {
+					knock_code_mid_y = knock_code_y_arr[1] - a;
+					//todo: add x check, fix kcin
+				} else {
+					knock_code_mid_y = knock_code_y_arr[1] + a;
+					//todo: add x check, fix kcin
+				}
 			}
 		} else {
 			if ((knock_code_input[0] == 1)||(knock_code_input[0] == 2)) {
 				knock_code_mid_y = knock_code_y_arr[0] + knock_code_delta;
+				//todo: add x check here?
 			} else if ((knock_code_input[1] == 1)||(knock_code_input[1] == 2)) {
 				knock_code_mid_y = knock_code_y_arr[1] + knock_code_delta;
+				//todo: add x check here?
 			}
 		}
 
