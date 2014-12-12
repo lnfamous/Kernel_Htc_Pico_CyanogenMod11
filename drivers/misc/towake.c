@@ -628,7 +628,7 @@ void knock_code_func(int *x, int *y) {
 
 			printk(KERN_INFO "%s: delta x > delta y\n", __func__);
 
-			a = ((knock_code_x_arr[0] - knock_code_x_arr[1]) / 2);
+			a = ((abs(knock_code_x_arr[0] - knock_code_x_arr[1])) / 2);
 			printk(KERN_INFO "%s: delta x / 2 = %d\n", __func__, a);
 
 			if (knock_code_x_arr[0] < knock_code_x_arr[1]) {
@@ -641,14 +641,14 @@ void knock_code_func(int *x, int *y) {
 
 			//find average x of first 2 knocks
 			int avg = 0;
-			avg = ((knock_code_y_arr[0] - knock_code_y_arr[1]) / 2);
+			avg = ((abs(knock_code_y_arr[0] - knock_code_y_arr[1])) / 2);
 			printk(KERN_INFO "%s: delta y / 2 = %d\n", __func__, avg);
 			if (knock_code_y_arr[0] < knock_code_y_arr[1]) {
-				knock_code_mid_y = knock_code_y_arr[0] + a;
-				knock_code_buffer_y = knock_code_y_arr[0] - a;
+				knock_code_mid_y = knock_code_y_arr[0] + avg;
+				knock_code_buffer_y = knock_code_y_arr[0] - avg;
 			} else {
-				knock_code_mid_y = knock_code_y_arr[0] - a;
-				knock_code_buffer_y = knock_code_y_arr[0] + a;
+				knock_code_mid_y = knock_code_y_arr[0] - avg;
+				knock_code_buffer_y = knock_code_y_arr[0] + avg;
 			}
 			//find average x of first 2 knocks
 
@@ -659,7 +659,7 @@ void knock_code_func(int *x, int *y) {
 
 			printk(KERN_INFO "%s: delta x > delta y\n", __func__);
 
-			a = ((knock_code_y_arr[0] - knock_code_y_arr[1]) / 2);
+			a = ((abs(knock_code_y_arr[0] - knock_code_y_arr[1])) / 2);
 			printk(KERN_INFO "%s: delta y / 2 = %d\n", __func__, a);
 
 
@@ -672,14 +672,14 @@ void knock_code_func(int *x, int *y) {
 
 			//find average x of first 2 knocks
 			int avg = 0;
-			avg = ((knock_code_x_arr[0] - knock_code_x_arr[1]) / 2);
+			avg = ((abs(knock_code_x_arr[0] - knock_code_x_arr[1])) / 2);
 			printk(KERN_INFO "%s: delta x / 2 = %d\n", __func__, avg);
 			if (knock_code_x_arr[0] < knock_code_x_arr[1]) {
-				knock_code_mid_x = knock_code_x_arr[0] + a;
-				knock_code_buffer_x = knock_code_x_arr[0] - a;
+				knock_code_mid_x = knock_code_x_arr[0] + avg;
+				knock_code_buffer_x = knock_code_x_arr[0] - avg;
 			} else {
-				knock_code_mid_x = knock_code_x_arr[0] - a;
-				knock_code_buffer_x = knock_code_x_arr[0] + a;
+				knock_code_mid_x = knock_code_x_arr[0] - avg;
+				knock_code_buffer_x = knock_code_x_arr[0] + avg;
 			}
 			//find average x of first 2 knocks
 
@@ -727,20 +727,23 @@ void knock_code_func(int *x, int *y) {
 
 		if (*y < knock_code_buffer_y) {
 			if (knock_code_tmp_var == 0) {
-				printk(KERN_INFO "%s: x < knock_code_buffer_x = %d < %d\n", __func__, *x, knock_code_buffer_x);
+				printk(KERN_INFO "%s: y < knock_code_buffer_y = %d < %d\n", __func__, *y, knock_code_buffer_y);
 				knock_code_mid_y = knock_code_buffer_y;
 			}
 		}
 
 		if (*x < knock_code_buffer_x) {
-			if (knock_code_tmp_var == 0)
+			if (knock_code_tmp_var == 0) {
+				printk(KERN_INFO "%s: x < knock_code_buffer_x = %d < %d\n", __func__, *x, knock_code_buffer_x);
 				knock_code_mid_x = knock_code_buffer_x;
+			}
 		}
 
 
 		knock_code_x = *x;
 		knock_code_y = *y;
 		printk(KERN_INFO "%s: kctc = 3, x = %d, y = %d\n", __func__, *x, *y);
+		printk(KERN_INFO "%s: ---------------------------------------------------\n", __func__);
 		knock_code_touch_count += 1;
 
 		knock_code_time[0] = knock_code_time[1] = 0;
@@ -750,12 +753,12 @@ void knock_code_func(int *x, int *y) {
 
 	printk(KERN_INFO "%s: kcmidx = %d\n", __func__, knock_code_mid_x);
 	printk(KERN_INFO "%s: kcmidy = %d\n", __func__, knock_code_mid_y);
-
-	printk(KERN_INFO "%s: kcin[0] = %d\n", __func__, knock_code_input[0]);
-	printk(KERN_INFO "%s: kcin[1] = %d\n", __func__, knock_code_input[1]);
-	printk(KERN_INFO "%s: kcin[2] = %d\n", __func__, knock_code_input[2]);
-	printk(KERN_INFO "%s: kcin[3] = %d\n", __func__, knock_code_input[3]);
-
+	printk(KERN_INFO "%s: ---------------------------------------------------\n", __func__);
+	//printk(KERN_INFO "%s: kcin[0] = %d\n", __func__, knock_code_input[0]);
+	//printk(KERN_INFO "%s: kcin[1] = %d\n", __func__, knock_code_input[1]);
+	//printk(KERN_INFO "%s: kcin[2] = %d\n", __func__, knock_code_input[2]);
+	//printk(KERN_INFO "%s: kcin[3] = %d\n", __func__, knock_code_input[3]);
+	//printk(KERN_INFO "%s: ---------------------------------------------------\n", __func__);
 
 	int i = 0;
 
@@ -764,18 +767,22 @@ void knock_code_func(int *x, int *y) {
 			(knock_code_y_arr[i] < knock_code_mid_y)) {
 			knock_code_input[i] = 1;
 			printk(KERN_INFO "%s: fixing kcin[%d] = %d\n", __func__, i, knock_code_input[i]);
+			printk(KERN_INFO "%s: ---------------------------------------------------\n", __func__);
 		} else if ((knock_code_x_arr[i] > knock_code_mid_x) &&
 			(knock_code_y_arr[i] < knock_code_mid_y)) {
 			knock_code_input[i] = 2;
 			printk(KERN_INFO "%s: fixing kcin[%d] = %d\n", __func__, i, knock_code_input[i]);
+			printk(KERN_INFO "%s: ---------------------------------------------------\n", __func__);
 		} else if ((knock_code_x_arr[i] > knock_code_mid_x) &&
 			(knock_code_y_arr[i] > knock_code_mid_y)) {
 			knock_code_input[i] = 3;
 			printk(KERN_INFO "%s: fixing kcin[%d] = %d\n", __func__, i, knock_code_input[i]);
+			printk(KERN_INFO "%s: ---------------------------------------------------\n", __func__);
 		} else if ((knock_code_x_arr[i] < knock_code_mid_x) &&
 			(knock_code_y_arr[i] > knock_code_mid_y)) {
 			knock_code_input[i] = 4;
 			printk(KERN_INFO "%s: fixing kcin[%d] = %d\n", __func__, i, knock_code_input[i]);
+			printk(KERN_INFO "%s: ---------------------------------------------------\n", __func__);
 		}
 	}
 
@@ -783,6 +790,7 @@ void knock_code_func(int *x, int *y) {
 	printk(KERN_INFO "%s: kcin[1] = %d\n", __func__, knock_code_input[1]);
 	printk(KERN_INFO "%s: kcin[2] = %d\n", __func__, knock_code_input[2]);
 	printk(KERN_INFO "%s: kcin[3] = %d\n", __func__, knock_code_input[3]);
+	printk(KERN_INFO "%s: ---------------------------------------------------\n", __func__);
 
 	if (
 		(knock_code_pattern[0] == knock_code_input[0]) &&
@@ -791,9 +799,11 @@ void knock_code_func(int *x, int *y) {
 		(knock_code_pattern[3] == knock_code_input[3])
 		) {
 		printk(KERN_INFO "%s: pattern matches!\n", __func__);
+		printk(KERN_INFO "%s: ---------------------------------------------------\n", __func__);
 	}
 
 	knock_code_reset_vars();
+	printk(KERN_INFO "%s: ###################################################\n", __func__);
 	return;
 
 }
