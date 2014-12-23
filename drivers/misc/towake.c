@@ -744,6 +744,8 @@ void knock_code_func(int *x, int *y) {
 		knock_code_x = *x;
 		knock_code_y = *y;
 		printk(KERN_INFO "%s: kctc = 2, x = %d, y = %d\n", __func__, *x, *y);
+		printk(KERN_INFO "%s: kcmidx = %d\n", __func__, knock_code_mid_x);
+		printk(KERN_INFO "%s: kcmidy = %d\n", __func__, knock_code_mid_y);
 		printk(KERN_INFO "%s: ---------------------------------------------------\n", __func__);
 		knock_code_time[0] = knock_code_time[1];
 		knock_code_time[1] = 0;
@@ -757,6 +759,8 @@ void knock_code_func(int *x, int *y) {
 		knock_code_x = *x;
 		knock_code_y = *y;
 		printk(KERN_INFO "%s: kctc = 3, x = %d, y = %d\n", __func__, *x, *y);
+		printk(KERN_INFO "%s: kcmidx = %d\n", __func__, knock_code_mid_x);
+		printk(KERN_INFO "%s: kcmidy = %d\n", __func__, knock_code_mid_y);
 		printk(KERN_INFO "%s: ---------------------------------------------------\n", __func__);
 		knock_code_touch_count += 1;
 
@@ -764,29 +768,6 @@ void knock_code_func(int *x, int *y) {
 		knock_code_touch_count = 0;
 
 	}
-
-	printk(KERN_INFO "%s: kcmidx = %d\n", __func__, knock_code_mid_x);
-	printk(KERN_INFO "%s: kcmidy = %d\n", __func__, knock_code_mid_y);
-	printk(KERN_INFO "%s: ---------------------------------------------------\n", __func__);
-	//printk(KERN_INFO "%s: kcin[0] = %d\n", __func__, knock_code_input[0]);
-	//printk(KERN_INFO "%s: kcin[1] = %d\n", __func__, knock_code_input[1]);
-	//printk(KERN_INFO "%s: kcin[2] = %d\n", __func__, knock_code_input[2]);
-	//printk(KERN_INFO "%s: kcin[3] = %d\n", __func__, knock_code_input[3]);
-	//printk(KERN_INFO "%s: ---------------------------------------------------\n", __func__);
-
-	if (
-	(knock_code_mid_x > knock_code_x_arr[0])
-	&&
-	(knock_code_mid_x > knock_code_x_arr[1])
-	&&
-	(knock_code_mid_x > knock_code_x_arr[2])
-	&&
-	(knock_code_mid_x > knock_code_x_arr[3])
-	) {
-		//smethg wrong here.
-		/* let's try averaging everything! */
-	}
-
 
 	int i = 0;
 
