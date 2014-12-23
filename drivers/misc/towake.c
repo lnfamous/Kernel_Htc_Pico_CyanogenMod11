@@ -633,8 +633,6 @@ int knock_code_check_n_reset(void) {
 			knock_code_input[2] = 0;
 			knock_code_input[3] = 0;
 
-
-
 			knock_code_x_arr[0] = 0;
 			knock_code_x_arr[1] = 0;
 			knock_code_x_arr[2] = 0;
@@ -752,6 +750,19 @@ void knock_code_func(int *x, int *y) {
 			//}
 
 			knock_code_tmp_var = 1;
+		} else { //kcy2 > buffer, i.e. below.
+			int avg = 0;
+			avg = ((abs(knock_code_y_arr[0] + knock_code_y_arr[1])) / 2); //idk why we are averaging, but fux it.
+
+			if ((knock_code_y_arr[2] - avg) > knock_code_delta) {
+				if (knock_code_y_arr[2] > (avg)) { // greater than delta
+											// why exactly > delta? idk. feels like it.
+					//midify these two
+					knock_code_mid_y = (knock_code_y_arr[2] + avg) / 2;
+					knock_code_tmp_var = 1;
+				}
+			}
+
 		}
 
 		if (knock_code_x_arr[2] < knock_code_buffer_x) { // third touch left, i.e. first two touches around 2, 3
@@ -765,6 +776,18 @@ void knock_code_func(int *x, int *y) {
 			//}
 
 			knock_code_tmp_var = 1;
+		} else { //kcx2 > buffer, i.e. to right
+			int avg = 0;
+			avg = ((abs(knock_code_x_arr[0] + knock_code_x_arr[1])) / 2); //idk why we are averaging, but fux it.
+
+			if ((knock_code_x_arr[2] - avg) > knock_code_delta) {
+				if (knock_code_x_arr[2] > (avg)) { // greater than delta
+											// why exactly > delta? idk. feels like it.
+					//midify these two
+					knock_code_mid_x = (knock_code_x_arr[2] + avg) / 2;
+					knock_code_tmp_var = 1;
+				}
+			}
 		}
 
 		knock_code_x = *x;
