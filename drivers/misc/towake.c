@@ -767,7 +767,10 @@ void knock_code_func(int *x, int *y) {
 
 		if (knock_code_x_arr[2] < knock_code_buffer_x) { // third touch left, i.e. first two touches around 2, 3
 			printk(KERN_INFO "%s: x < knock_code_buffer_x = %d < %d\n", __func__, *x, knock_code_buffer_x);
-			knock_code_mid_x = knock_code_buffer_x;
+
+			if (knock_code_x_arr[2] < knock_code_mid_x) {
+				knock_code_mid_x = knock_code_buffer_x;
+			}
 
 			// i have no idea what this is supposed to do.
 			//if ((abs(knock_code_x_arr[2] - knock_code_x_arr[1])) > (a)) {
