@@ -743,12 +743,6 @@ void knock_code_func(int *x, int *y) {
 			printk(KERN_INFO "%s: y < knock_code_buffer_y = %d < %d\n", __func__, *y, knock_code_buffer_y);
 			knock_code_mid_y = knock_code_buffer_y;
 
-			// i have no idea what this does now.
-			//if ((abs(knock_code_y_arr[2] - knock_code_y_arr[1])) > (a)) {
-			//	printk(KERN_INFO "%s: ky3 - ky2 > a + delta %d < %d\n", __func__, (abs(knock_code_y_arr[1] - knock_code_y_arr[2])), (a + knock_code_delta));
-			//	knock_code_mid_y = ((knock_code_y_arr[1] + knock_code_y_arr[2]) / 2);
-			//}
-
 			knock_code_tmp_var = 1;
 		} else { //kcy2 > buffer, i.e. below.
 			int avg = 0;
@@ -766,21 +760,13 @@ void knock_code_func(int *x, int *y) {
 		}
 
 		if (knock_code_x_arr[2] < knock_code_buffer_x) { // third touch left, i.e. first two touches around 2, 3
-			printk(KERN_INFO "%s: x < knock_code_buffer_x = %d < %d\n", __func__, *x, knock_code_buffer_x);
-
 			if ((knock_code_x_arr[2] < knock_code_mid_x) &&
 				(((((knock_code_x_arr[0] + knock_code_x_arr[1]) / 2) + knock_code_x_arr[2]) / 2) > knock_code_mid_x)
 				) {
+				printk(KERN_INFO "%s: fixing kcmidx = %d -> %d\n", __func__, knock_code_mid_x, knock_code_buffer_x);
 				knock_code_mid_x = knock_code_buffer_x;
+				knock_code_tmp_var = 1;
 			}
-
-			// i have no idea what this is supposed to do.
-			//if ((abs(knock_code_x_arr[2] - knock_code_x_arr[1])) > (a)) {
-			//	printk(KERN_INFO "%s: kx3 - kx2 > a + delta %d < %d\n", __func__, (abs(knock_code_x_arr[1] - knock_code_x_arr[2])), (a + knock_code_delta));
-			//	knock_code_mid_x = ((knock_code_x_arr[1] + knock_code_x_arr[2]) / 2);
-			//}
-
-			knock_code_tmp_var = 1;
 		} else { //kcx2 > buffer, i.e. to right
 			int avg = 0;
 			avg = ((abs(knock_code_x_arr[0] + knock_code_x_arr[1])) / 2); //idk why we are averaging, but fux it.
