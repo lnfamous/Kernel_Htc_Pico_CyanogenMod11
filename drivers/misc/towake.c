@@ -844,6 +844,20 @@ void knock_code_func(int *x, int *y) {
 	//printk(KERN_INFO "%s: kcin[3] = %d\n", __func__, knock_code_input[3]);
 	//printk(KERN_INFO "%s: ---------------------------------------------------\n", __func__);
 
+	if (
+	(knock_code_mid_x > knock_code_x_arr[0])
+	&&
+	(knock_code_mid_x > knock_code_x_arr[1])
+	&&
+	(knock_code_mid_x > knock_code_x_arr[2])
+	&&
+	(knock_code_mid_x > knock_code_x_arr[3])
+	) {
+		//smethg wrong here.
+		/* let's try averaging everything! */
+	}
+
+
 	int i = 0;
 
 	for (i = 0; i < 4; i++) {
