@@ -741,10 +741,15 @@ void knock_code_func(int *x, int *y) {
 
 		if (knock_code_y_arr[2] < knock_code_buffer_y) { // third touch above, i.e. first two touches around 4, 3
 			printk(KERN_INFO "%s: y < knock_code_buffer_y = %d < %d\n", __func__, *y, knock_code_buffer_y);
-			knock_code_mid_y = knock_code_buffer_y;
-
-			knock_code_tmp_var = 1;
+			if ((knock_code_y_arr[2] < knock_code_mid_y) &&
+				(((((knock_code_y_arr[0] + knock_code_y_arr[1]) / 2) + knock_code_y_arr[2]) / 2) > knock_code_mid_y)
+				) {
+				printk(KERN_INFO "%s: fixing kcmidy = %d -> %d\n", __func__, knock_code_mid_y, knock_code_buffer_y);
+				knock_code_mid_y = knock_code_buffer_y;
+				knock_code_tmp_var = 1;
+			}
 		} else { //kcy2 > buffer, i.e. below.
+			printk(KERN_INFO "%s: kcy2 > knock_code_buffer_y = %d < %d\n", __func__, *y, knock_code_buffer_y);
 			int avg = 0;
 			avg = ((abs(knock_code_y_arr[0] + knock_code_y_arr[1])) / 2); //idk why we are averaging, but fux it.
 
@@ -768,6 +773,7 @@ void knock_code_func(int *x, int *y) {
 				knock_code_tmp_var = 1;
 			}
 		} else { //kcx2 > buffer, i.e. to right
+			printk(KERN_INFO "%s: kcx2 > knock_code_buffer_x = %d < %d\n", __func__, *x, knock_code_buffer_x);
 			int avg = 0;
 			avg = ((abs(knock_code_x_arr[0] + knock_code_x_arr[1])) / 2); //idk why we are averaging, but fux it.
 
@@ -794,7 +800,7 @@ void knock_code_func(int *x, int *y) {
 
 	if (knock_code_touch_count == 3) {
 
-		if (knock_code_y_arr[3] < knock_code_buffer_y) {
+		if (0) {
 			if (knock_code_tmp_var == 0) {
 				printk(KERN_INFO "%s: y < knock_code_buffer_y = %d < %d\n", __func__, *y, knock_code_buffer_y);
 				knock_code_mid_y = knock_code_buffer_y;
@@ -858,23 +864,23 @@ void knock_code_func(int *x, int *y) {
 	int i = 0;
 
 	for (i = 0; i < 4; i++) {
-		if ((knock_code_x_arr[i] < knock_code_mid_x) &&
-			(knock_code_y_arr[i] < knock_code_mid_y)) {
+		if ((knock_code_x_arr[i] <= knock_code_mid_x) &&
+			(knock_code_y_arr[i] <= knock_code_mid_y)) {
 			knock_code_input[i] = 1;
 			printk(KERN_INFO "%s: fixing kcin[%d] = %d\n", __func__, i, knock_code_input[i]);
 			printk(KERN_INFO "%s: ---------------------------------------------------\n", __func__);
-		} else if ((knock_code_x_arr[i] > knock_code_mid_x) &&
-			(knock_code_y_arr[i] < knock_code_mid_y)) {
+		} else if ((knock_code_x_arr[i] >= knock_code_mid_x) &&
+			(knock_code_y_arr[i] <= knock_code_mid_y)) {
 			knock_code_input[i] = 2;
 			printk(KERN_INFO "%s: fixing kcin[%d] = %d\n", __func__, i, knock_code_input[i]);
 			printk(KERN_INFO "%s: ---------------------------------------------------\n", __func__);
-		} else if ((knock_code_x_arr[i] > knock_code_mid_x) &&
-			(knock_code_y_arr[i] > knock_code_mid_y)) {
+		} else if ((knock_code_x_arr[i] >= knock_code_mid_x) &&
+			(knock_code_y_arr[i] >= knock_code_mid_y)) {
 			knock_code_input[i] = 3;
 			printk(KERN_INFO "%s: fixing kcin[%d] = %d\n", __func__, i, knock_code_input[i]);
 			printk(KERN_INFO "%s: ---------------------------------------------------\n", __func__);
-		} else if ((knock_code_x_arr[i] < knock_code_mid_x) &&
-			(knock_code_y_arr[i] > knock_code_mid_y)) {
+		} else if ((knock_code_x_arr[i] <= knock_code_mid_x) &&
+			(knock_code_y_arr[i] >= knock_code_mid_y)) {
 			knock_code_input[i] = 4;
 			printk(KERN_INFO "%s: fixing kcin[%d] = %d\n", __func__, i, knock_code_input[i]);
 			printk(KERN_INFO "%s: ---------------------------------------------------\n", __func__);
