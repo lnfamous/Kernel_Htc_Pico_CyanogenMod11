@@ -883,7 +883,7 @@ void knock_code_func(int *x, int *y) {
 		(knock_code_pattern[3] == knock_code_input[3])
 		) {
 		printk(KERN_INFO "%s: pattern matches!\n", __func__);
-		presspwr();
+		//presspwr();
 		printk(KERN_INFO "%s: ---------------------------------------------------\n", __func__);
 	}
 
