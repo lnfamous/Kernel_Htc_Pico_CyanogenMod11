@@ -124,9 +124,9 @@ knock\_code\_possible_combos (bold: done, rest: not done)
 
 411[1-4]
 
-412[1-4]
+**412[1-4]**
 
-413[1-4]
+**413[1-4]**
 
 414[1-4]
 
