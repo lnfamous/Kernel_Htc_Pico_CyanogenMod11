@@ -768,7 +768,9 @@ void knock_code_func(int *x, int *y) {
 		if (knock_code_x_arr[2] < knock_code_buffer_x) { // third touch left, i.e. first two touches around 2, 3
 			printk(KERN_INFO "%s: x < knock_code_buffer_x = %d < %d\n", __func__, *x, knock_code_buffer_x);
 
-			if (knock_code_x_arr[2] < knock_code_mid_x) {
+			if ((knock_code_x_arr[2] < knock_code_mid_x) &&
+				(((((knock_code_x_arr[0] + knock_code_x_arr[1]) / 2) + knock_code_x_arr[2]) / 2) > knock_code_mid_x)
+				) {
 				knock_code_mid_x = knock_code_buffer_x;
 			}
 
@@ -820,7 +822,7 @@ void knock_code_func(int *x, int *y) {
 
 		}
 
-		if (*x < knock_code_buffer_x) {
+		if (0) {
 			if (knock_code_tmp_var == 0) {
 				printk(KERN_INFO "%s: x < knock_code_buffer_x = %d < %d\n", __func__, *x, knock_code_buffer_x);
 				knock_code_mid_x = knock_code_buffer_x;
