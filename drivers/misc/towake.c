@@ -660,45 +660,6 @@ int knock_code_check_n_reset(void) {
 
 #define MIN(a,b) ((a) <= (b) ? (a) : (b))
 #define MAX(a,b) ((a) >= (b) ? (a) : (b))
-#define MIN3(a,b,c) ( MIN(a, MAX(b,c)) )
-#define MAX3(a,b,c) ( MAX(a, MAX(b,c)) )
-
-
-int my_averaging_func(int a, int b, int c) {
-    int mean = (a + b + c) / 3;
-
-    int side1 = 0;
-
-    int side2 = 0;
-
-    if (a <= mean) {
-        side1 += a;
-    } else {
-        side2 += a;
-    }
-
-    if (b <= mean) {
-        side1 += b;
-    } else {
-        side2 += b;
-    }
-
-    if (c <= mean) {
-        side1 += c;
-    } else {
-        side2 += c;
-    }
-
-    int tmp_var = side2 / 2;
-
-    int tmp_var_2 = (side1 + tmp_var) / 2;
-
-    return tmp_var_2;
-
-}
-
-
-
 
 void knock_code_func(int *x, int *y) {
 
@@ -760,23 +721,23 @@ void knock_code_func(int *x, int *y) {
 
 	if (knock_code_touch_count == 2) { //third touch. lot to do here.
 
-		if (knock_code_y_arr[2] >= knock_code_mid_y) {
-			if (knock_code_y_arr[2] > MAX(knock_code_y_arr[0], knock_code_y_arr[1])) {
-				knock_code_mid_y = my_averaging_func(knock_code_y_arr[0], knock_code_y_arr[1], knock_code_y_arr[2]);
-			}
-		} else {
-			if (knock_code_y_arr[2] < MIN(knock_code_y_arr[0], knock_code_y_arr[1])) {
-				knock_code_mid_y = my_averaging_func(knock_code_y_arr[0], knock_code_y_arr[1], knock_code_y_arr[2]);
+		if (knock_code_y_arr[2] < knock_code_buffer_y) { // third touch above, i.e. first two touches around 4, 3
+			knock_code_mid_y = knock_code_buffer_y; //tmp. todo: work here. averaging functions, etc.
+		} else { //kcy2 > buffer, i.e. below.
+			if (knock_code_y_arr[2] > knock_code_mid_y) {
+				if (knock_code_y_arr[2] > MAX(knock_code_y_arr[0], knock_code_y_arr[1])) {
+					knock_code_mid_y = (knock_code_mid_y + knock_code_y_arr[2]) / 2; // tmp. todo: work here. averaging functions, etc.
+				}
 			}
 		}
 
-		if (knock_code_x_arr[2] > knock_code_mid_x) {
-			if (knock_code_x_arr[2] > MAX(knock_code_x_arr[0], knock_code_x_arr[1])) {
-				knock_code_mid_x = my_averaging_func(knock_code_x_arr[0], knock_code_x_arr[1], knock_code_x_arr[2]);
-			}
-		} else {
-			if (knock_code_x_arr[2] < MIN(knock_code_x_arr[0], knock_code_x_arr[1])) {
-				knock_code_mid_x = my_averaging_func(knock_code_x_arr[0], knock_code_x_arr[1], knock_code_x_arr[2]);
+		if (knock_code_x_arr[2] < knock_code_buffer_x) { // third touch left, i.e. first two touches around 2, 3
+			knock_code_mid_x = knock_code_buffer_x; //tmp. todo: work here. averaging functions, etc.
+		} else { //kcx2 > buffer, i.e. to right
+			if (knock_code_x_arr[2] > knock_code_mid_x) {
+				if (knock_code_x_arr[2] > MAX(knock_code_x_arr[0], knock_code_x_arr[1])) {
+					knock_code_mid_x = (knock_code_mid_x + knock_code_x_arr[2]) / 2; // tmp. todo: work here. averaging functions, etc.
+				}
 			}
 		}
 
