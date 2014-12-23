@@ -660,6 +660,158 @@ int knock_code_check_n_reset(void) {
 
 #define MIN(a,b) ((a) <= (b) ? (a) : (b))
 #define MAX(a,b) ((a) >= (b) ? (a) : (b))
+#define MIN3(a,b,c) ( MIN(a, MIN(b,c)) )
+#define MIN4(a,b,c,d) ( MIN(a, MIN3(b,c,d)) )
+#define MAX3(a,b,c) ( MAX(a, MAX(b,c)) )
+#define MAX4(a,b,c,d) ( MAX(a, MAX3(b,c,d)) )
+
+int my_averaging_func(int a, int b, int c) {
+	int mean = (a + b + c) / 3;
+
+	int side1 = 0;
+	int nside1 = 0;
+
+	int side2 = 0;
+	int nside2 = 0;
+
+	if (a <= mean) {
+		side1 += a;
+		nside1 += 1;
+	} else {
+		side2 += a;
+		nside2 += 1;
+	}
+
+	if (b <= mean) {
+		side1 += b;
+		nside1 += 1;
+	} else {
+		side2 += b;
+		nside2 += 1;
+	}
+
+	if (c <= mean) {
+		side1 += c;
+		nside1 += 1;
+	} else {
+		side2 += c;
+		nside2 += 1;
+	}
+
+	int tmp_var = side2 / nside2; //avg of side 2
+
+	int tmp_var_2 = side1 / nside1; // avg of side 1
+
+	int tmp_var_3 = (tmp_var + tmp_var_2) / 2;
+
+	return tmp_var_3;
+
+}
+
+int my_averaging_func_four(int a, int b, int c, int d) {
+	int mean = (a + b + c + d) / 4;
+
+	int side1 = 0;
+	int nside1 = 0;
+
+	int side2 = 0;
+	int nside2 = 0;
+
+	if (a <= mean) {
+		side1 += a;
+		nside1 += 1;
+	} else {
+		side2 += a;
+		nside2 += 1;
+	}
+
+	if (b <= mean) {
+		side1 += b;
+		nside1 += 1;
+	} else {
+		side2 += b;
+		nside2 += 1;
+	}
+
+	if (c <= mean) {
+		side1 += c;
+		nside1 += 1;
+	} else {
+		side2 += c;
+		nside2 += 1;
+	}
+
+	if (d <= mean) {
+		side1 += d;
+		nside1 += 1;
+	} else {
+		side2 += d;
+		nside2 += 1;
+	}
+
+	int tmp_var = side2 / nside2; //avg of side 2
+
+	int tmp_var_2 = side1 / nside1; // avg of side 1
+
+	int tmp_var_3 = (tmp_var + tmp_var_2) / 2;
+
+	return tmp_var_3;
+
+}
+
+
+int get_average_x_3() {
+	return my_averaging_func(
+		knock_code_x_arr[0],
+		knock_code_x_arr[1],
+		knock_code_x_arr[2]);
+}
+
+int get_average_x_4() {
+	return my_averaging_func_four(
+		knock_code_x_arr[0],
+		knock_code_x_arr[1],
+		knock_code_x_arr[2],
+		knock_code_x_arr[3]
+		);
+}
+
+int get_average_y_4() {
+	return my_averaging_func_four(
+		knock_code_y_arr[0],
+		knock_code_y_arr[1],
+		knock_code_y_arr[2],
+		knock_code_y_arr[3]
+		);
+}
+
+
+int get_max_x_3() {
+	return MAX3(
+		knock_code_x_arr[0],
+		knock_code_x_arr[1],
+		knock_code_x_arr[2]);
+}
+
+int get_max_x_4() {
+	return MAX4(
+		knock_code_x_arr[0],
+		knock_code_x_arr[1],
+		knock_code_x_arr[2],
+		knock_code_x_arr[3]
+		);
+}
+
+
+int get_max_y_4() {
+	return MAX4(
+		knock_code_y_arr[0],
+		knock_code_y_arr[1],
+		knock_code_y_arr[2],
+		knock_code_y_arr[3]
+		);
+}
+
 
 void knock_code_func(int *x, int *y) {
 
@@ -755,6 +907,13 @@ void knock_code_func(int *x, int *y) {
 	}
 
 	if (knock_code_touch_count == 3) {
+		if ((abs(get_average_x_4() - get_max_x_4())) < (2 * knock_code_delta)) {
+			knock_code_mid_x = get_average_x_4() + (2 * knock_code_delta);
+		}
+
+		if ((abs(get_average_y_4() - get_max_y_4())) < (2 * knock_code_delta)) {
+			knock_code_mid_y = get_average_y_4() + (2 * knock_code_delta);
+		}
 
 		knock_code_x = *x;
 		knock_code_y = *y;
