@@ -658,6 +658,9 @@ int knock_code_check_n_reset(void) {
 
 }
 
+#define MIN(a,b) ((a) <= (b) ? (a) : (b))
+#define MAX(a,b) ((a) >= (b) ? (a) : (b))
+
 void knock_code_func(int *x, int *y) {
 
 	knock_code_x_arr[knock_code_touch_count] = *x;
@@ -666,15 +669,10 @@ void knock_code_func(int *x, int *y) {
 	printk(KERN_INFO "%s: ###################################################\n", __func__);
 	printk(KERN_INFO "%s: ---------------------------------------------------\n", __func__);
 	printk(KERN_INFO "%s: knock_code_touch_count = %d\n", __func__, knock_code_touch_count);
-	printk(KERN_INFO "%s: knock_code_x_arr[0] = %d\n", __func__, knock_code_x_arr[0]);
-	printk(KERN_INFO "%s: knock_code_x_arr[1] = %d\n", __func__, knock_code_x_arr[1]);
-	printk(KERN_INFO "%s: knock_code_x_arr[2] = %d\n", __func__, knock_code_x_arr[2]);
-	printk(KERN_INFO "%s: knock_code_x_arr[3] = %d\n", __func__, knock_code_x_arr[3]);
-
-	printk(KERN_INFO "%s: knock_code_y_arr[0] = %d\n", __func__, knock_code_y_arr[0]);
-	printk(KERN_INFO "%s: knock_code_y_arr[1] = %d\n", __func__, knock_code_y_arr[1]);
-	printk(KERN_INFO "%s: knock_code_y_arr[2] = %d\n", __func__, knock_code_y_arr[2]);
-	printk(KERN_INFO "%s: knock_code_y_arr[3] = %d\n", __func__, knock_code_y_arr[3]);
+	int tmp_var_loop_show = 0;
+	for (tmp_var_loop_show = 0; tmp_var_loop_show <= knock_code_touch_count; tmp_var_loop_show++) {
+		printk(KERN_INFO "%s: knock_code_x_y[0] = %d,%d\n", __func__, knock_code_x_arr[tmp_var_loop_show], knock_code_y_arr[tmp_var_loop_show]);
+	}
 	printk(KERN_INFO "%s: ---------------------------------------------------\n", __func__);
 
 	int a = 0;
@@ -699,27 +697,11 @@ void knock_code_func(int *x, int *y) {
 			return;
 		}
 
-		a = ((abs(knock_code_x_arr[0] - knock_code_x_arr[1])) / 2);
-		printk(KERN_INFO "%s: delta x / 2 = %d\n", __func__, a);
+		knock_code_mid_x = ((knock_code_x_arr[0] + knock_code_x_arr[1]) / 2);
+		knock_code_buffer_x = MIN(knock_code_x_arr[0], knock_code_x_arr[1]) - (knock_code_mid_x - MIN(knock_code_x_arr[0], knock_code_x_arr[1]));
 
-		if (knock_code_x_arr[0] < knock_code_x_arr[1]) {
-			knock_code_mid_x = knock_code_x_arr[0] + a;
-			knock_code_buffer_x = knock_code_x_arr[0] - a;
-		} else {
-			knock_code_mid_x = knock_code_x_arr[0] - a;
-			knock_code_buffer_x = knock_code_x_arr[0] + a;
-		}
-
-		a = ((abs(knock_code_y_arr[0] - knock_code_y_arr[1])) / 2);
-		printk(KERN_INFO "%s: delta y / 2 = %d\n", __func__, a);
-
-		if (knock_code_y_arr[0] < knock_code_y_arr[1]) {
-			knock_code_mid_y = knock_code_y_arr[0] + a;
-			knock_code_buffer_y = knock_code_y_arr[0] - a;
-		} else {
-			knock_code_mid_y = knock_code_y_arr[0] - a;
-			knock_code_buffer_y = knock_code_y_arr[0] + a;
-		}
+		knock_code_mid_y = ((knock_code_y_arr[0] + knock_code_y_arr[1]) / 2);
+		knock_code_buffer_y = MIN(knock_code_y_arr[0], knock_code_y_arr[1]) - (knock_code_mid_y - MIN(knock_code_y_arr[0], knock_code_y_arr[1]));
 
 		printk(KERN_INFO "%s: knock_code_mid_x = %d\n", __func__, knock_code_mid_x);
 		printk(KERN_INFO "%s: knock_code_mid_y = %d\n", __func__, knock_code_mid_y);
@@ -740,49 +722,21 @@ void knock_code_func(int *x, int *y) {
 	if (knock_code_touch_count == 2) { //third touch. lot to do here.
 
 		if (knock_code_y_arr[2] < knock_code_buffer_y) { // third touch above, i.e. first two touches around 4, 3
-			printk(KERN_INFO "%s: y < knock_code_buffer_y = %d < %d\n", __func__, *y, knock_code_buffer_y);
-			if ((knock_code_y_arr[2] < knock_code_mid_y) &&
-				(((((knock_code_y_arr[0] + knock_code_y_arr[1]) / 2) + knock_code_y_arr[2]) / 2) > knock_code_mid_y)
-				) {
-				printk(KERN_INFO "%s: fixing kcmidy = %d -> %d\n", __func__, knock_code_mid_y, knock_code_buffer_y);
-				knock_code_mid_y = knock_code_buffer_y;
-				knock_code_tmp_var = 1;
-			}
+			knock_code_mid_y = knock_code_buffer_y; //tmp. todo: work here. averaging functions, etc.
 		} else { //kcy2 > buffer, i.e. below.
-			printk(KERN_INFO "%s: kcy2 > knock_code_buffer_y = %d < %d\n", __func__, *y, knock_code_buffer_y);
-			int avg = 0;
-			avg = ((abs(knock_code_y_arr[0] + knock_code_y_arr[1])) / 2); //idk why we are averaging, but fux it.
-
-			if ((knock_code_y_arr[2] - avg) > knock_code_delta) {
-				if (knock_code_y_arr[2] > (avg)) { // greater than delta
-											// why exactly > delta? idk. feels like it.
-					//midify these two
-					knock_code_mid_y = (knock_code_y_arr[2] + avg) / 2;
-					knock_code_tmp_var = 1;
+			if (knock_code_y_arr[2] > knock_code_mid_y) {
+				if (knock_code_y_arr[2] > MAX(knock_code_y_arr[0], knock_code_y_arr[1])) {
+					knock_code_mid_y = (knock_code_mid_y + knock_code_y_arr[2]) / 2; // tmp. todo: work here. averaging functions, etc.
 				}
 			}
-
 		}
 
 		if (knock_code_x_arr[2] < knock_code_buffer_x) { // third touch left, i.e. first two touches around 2, 3
-			if ((knock_code_x_arr[2] < knock_code_mid_x) &&
-				(((((knock_code_x_arr[0] + knock_code_x_arr[1]) / 2) + knock_code_x_arr[2]) / 2) > knock_code_mid_x)
-				) {
-				printk(KERN_INFO "%s: fixing kcmidx = %d -> %d\n", __func__, knock_code_mid_x, knock_code_buffer_x);
-				knock_code_mid_x = knock_code_buffer_x;
-				knock_code_tmp_var = 1;
-			}
+			knock_code_mid_x = knock_code_buffer_x; //tmp. todo: work here. averaging functions, etc.
 		} else { //kcx2 > buffer, i.e. to right
-			printk(KERN_INFO "%s: kcx2 > knock_code_buffer_x = %d < %d\n", __func__, *x, knock_code_buffer_x);
-			int avg = 0;
-			avg = ((abs(knock_code_x_arr[0] + knock_code_x_arr[1])) / 2); //idk why we are averaging, but fux it.
-
-			if ((knock_code_x_arr[2] - avg) > knock_code_delta) {
-				if (knock_code_x_arr[2] > (avg)) { // greater than delta
-											// why exactly > delta? idk. feels like it.
-					//midify these two
-					knock_code_mid_x = (knock_code_x_arr[2] + avg) / 2;
-					knock_code_tmp_var = 1;
+			if (knock_code_x_arr[2] > knock_code_mid_x) {
+				if (knock_code_x_arr[2] > MAX(knock_code_x_arr[0], knock_code_x_arr[1])) {
+					knock_code_mid_x = (knock_code_mid_x + knock_code_x_arr[2]) / 2; // tmp. todo: work here. averaging functions, etc.
 				}
 			}
 		}
@@ -799,33 +753,6 @@ void knock_code_func(int *x, int *y) {
 	}
 
 	if (knock_code_touch_count == 3) {
-
-		if (0) {
-			if (knock_code_tmp_var == 0) {
-				printk(KERN_INFO "%s: y < knock_code_buffer_y = %d < %d\n", __func__, *y, knock_code_buffer_y);
-				knock_code_mid_y = knock_code_buffer_y;
-			}
-
-			if ((abs(knock_code_y_arr[3] - knock_code_y_arr[2])) > (a + knock_code_delta)) {
-				printk(KERN_INFO "%s: ky4 - ky3 > a + delta %d < %d\n", __func__, (abs(knock_code_y_arr[1] - knock_code_y_arr[2])), (a + knock_code_delta));
-				knock_code_mid_y = ((knock_code_y_arr[1] + knock_code_y_arr[2]) / 2);
-			}
-
-
-		}
-
-		if (0) {
-			if (knock_code_tmp_var == 0) {
-				printk(KERN_INFO "%s: x < knock_code_buffer_x = %d < %d\n", __func__, *x, knock_code_buffer_x);
-				knock_code_mid_x = knock_code_buffer_x;
-			}
-
-			if ((abs(knock_code_x_arr[3] - knock_code_x_arr[2])) > (a + knock_code_delta)) {
-				printk(KERN_INFO "%s: kx4 - kx3 > a + delta %d < %d\n", __func__, (abs(knock_code_x_arr[1] - knock_code_x_arr[2])), (a + knock_code_delta));
-				knock_code_mid_x = ((knock_code_x_arr[1] + knock_code_x_arr[2]) / 2);
-			}
-
-		}
 
 		knock_code_x = *x;
 		knock_code_y = *y;
