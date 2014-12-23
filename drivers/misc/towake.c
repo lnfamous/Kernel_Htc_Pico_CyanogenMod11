@@ -908,11 +908,21 @@ void knock_code_func(int *x, int *y) {
 
 	if (knock_code_touch_count == 3) {
 		if ((abs(get_average_x_4() - get_max_x_4())) < (2 * knock_code_delta)) {
-			knock_code_mid_x = get_average_x_4() + (2 * knock_code_delta);
+			printk(KERN_INFO "%s: abs(get_average_x_4() - get_max_x_4()) = %d\n", __func__, knock_code_mid_x, abs(get_average_x_4() - get_max_x_4()));
+			//knock_code_mid_x = get_max_x_4() + (2 * knock_code_delta);
 		}
 
 		if ((abs(get_average_y_4() - get_max_y_4())) < (2 * knock_code_delta)) {
-			knock_code_mid_y = get_average_y_4() + (2 * knock_code_delta);
+			printk(KERN_INFO "%s: abs(get_average_y_4() - get_max_y_4()) = %d\n", __func__, knock_code_mid_x, abs(get_average_y_4() - get_max_y_4()));
+			//knock_code_mid_y = get_max_x_4() + (2 * knock_code_delta);
+		}
+
+		if ((abs(((knock_code_x_arr[0] +
+					knock_code_x_arr[1] +
+					knock_code_x_arr[2]) / 3) - knock_code_x_arr[3])) < (2 * knock_code_delta)) {
+			//1,4
+			printk(KERN_INFO "%s: checkpt 1\n", __func__);
+			knock_code_mid_x = get_max_x_4() + (2 * knock_code_delta);
 		}
 
 		knock_code_x = *x;
