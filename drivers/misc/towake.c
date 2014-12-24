@@ -767,27 +767,35 @@ void knock_code_func(int *x, int *y) {
 	}
 
 	if (knock_code_touch_count == 3) {
-		//tofix; 343x, 433x, 434x, 344x,
-		//		  232x, 233x, 322x, 323x
-
-		//fix: [3-4][3-4][3-4][1-2]
-		if (knock_code_y_arr[3] < knock_code_mid_y) {
+		//fix: [1,2][1,2][1,2][3,4]
+		if (knock_code_y_arr[3] > knock_code_mid_y) {
 			printk(KERN_INFO "%s: 1checkpt1\n", __func__);
-			if (knock_code_y_arr[3] < MIN3(knock_code_y_arr[0], knock_code_y_arr[1], knock_code_y_arr[2])) {
+			if (knock_code_y_arr[3] > MAX3(knock_code_y_arr[0], knock_code_y_arr[1], knock_code_y_arr[2])) {
 				printk(KERN_INFO "%s: 1checkpt2\n", __func__);
+				knock_code_mid_y = (knock_code_mid_y + knock_code_y_arr[3]) / 2; // tmp. todo: work here. averaging functions, etc.
+			}
+		} else { //fix: [3,4][3,4][3,4][1,2]
+			printk(KERN_INFO "%s: 1checkpt3\n", __func__);
+			if (knock_code_y_arr[3] < MIN3(knock_code_y_arr[0], knock_code_y_arr[1], knock_code_y_arr[2])) {
+				printk(KERN_INFO "%s: 1checkpt4\n", __func__);
 				knock_code_mid_y = (knock_code_mid_y + knock_code_y_arr[3]) / 2; // tmp. todo: work here. averaging functions, etc.
 			}
 		}
 
-		//fix: [2-3][2-3][2-3][1-4]
-		if (knock_code_x_arr[3] < knock_code_mid_x) {
-			printk(KERN_INFO "%s: 1checkpt3\n", __func__);
+		//fix: [1,4][1,4][1,4][2,3]
+		if (knock_code_x_arr[3] > knock_code_mid_x) {
+			printk(KERN_INFO "%s: 1checkpt5\n", __func__);
+			if (knock_code_x_arr[3] > MAX3(knock_code_x_arr[0], knock_code_x_arr[1], knock_code_x_arr[2])) {
+				printk(KERN_INFO "%s: 1checkpt6\n", __func__);
+				knock_code_mid_x = (knock_code_mid_x + knock_code_x_arr[3]) / 2; // tmp. todo: work here. averaging functions, etc.
+			}
+		} else { //fix: [2,3][2,3][2,3][1,4]
+			printk(KERN_INFO "%s: 1checkpt5\n", __func__);
 			if (knock_code_x_arr[3] < MIN3(knock_code_x_arr[0], knock_code_x_arr[1], knock_code_x_arr[2])) {
-				printk(KERN_INFO "%s: 1checkpt4\n", __func__);
+				printk(KERN_INFO "%s: 1checkpt6\n", __func__);
 				knock_code_mid_x = (knock_code_mid_x + knock_code_x_arr[3]) / 2; // tmp. todo: work here. averaging functions, etc.
 			}
 		}
-
 
 		knock_code_x = *x;
 		knock_code_y = *y;
