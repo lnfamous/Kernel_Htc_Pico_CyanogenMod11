@@ -27,9 +27,9 @@ knock\_code\_possible_combos (bold: done, rest: not done)
 
 ---
 
-121[1-4]
+**121[1-4]**
 
-122[1-4]
+**122[1-4]**
 
 **123[1-4]**
 
@@ -47,19 +47,19 @@ knock\_code\_possible_combos (bold: done, rest: not done)
 
 ---
 
-141[1-4]
+**141[1-4]**
 
 **142[1-4]**
 
 **143[1-4]**
 
-144[1-4]
+**144[1-4]**
 
 ---
 
-211[1-4]
+**211[1-4]**
 
-212[1-4]
+**212[1-4]**
 
 **213[1-4]**
 
@@ -122,13 +122,13 @@ knock\_code\_possible_combos (bold: done, rest: not done)
 
 ---
 
-411[1-4]
+**411[1-4]**
 
 **412[1-4]**
 
 **413[1-4]**
 
-414[1-4]
+**414[1-4]**
 
 
 ---
@@ -153,5 +153,5 @@ knock\_code\_possible_combos (bold: done, rest: not done)
 **434[1,2]**
 
 
-progress: 40/48
-to do   : 8/48
+progress: 48/48
+to do   : 0/48

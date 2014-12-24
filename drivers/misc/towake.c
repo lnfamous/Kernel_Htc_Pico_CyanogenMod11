@@ -662,6 +662,8 @@ int knock_code_check_n_reset(void) {
 #define MAX(a,b) ((a) >= (b) ? (a) : (b))
 #define MIN3(a,b,c) ( MIN(a, MAX(b,c)) )
 #define MAX3(a,b,c) ( MAX(a, MAX(b,c)) )
+#define MIN4(a,b,c,d) ( MIN(a, MIN3(b,c,d)) )
+#define MAX4(a,b,c,d) ( MAX(a, MAX3(b,c,d)) )
 
 void knock_code_func(int *x, int *y) {
 
@@ -790,11 +792,39 @@ void knock_code_func(int *x, int *y) {
 				knock_code_mid_x = (knock_code_mid_x + knock_code_x_arr[3]) / 2; // tmp. todo: work here. averaging functions, etc.
 			}
 		} else { //fix: [2,3][2,3][2,3][1,4]
-			printk(KERN_INFO "%s: 1checkpt5\n", __func__);
+			printk(KERN_INFO "%s: 1checkpt7\n", __func__);
 			if (knock_code_x_arr[3] < MIN3(knock_code_x_arr[0], knock_code_x_arr[1], knock_code_x_arr[2])) {
-				printk(KERN_INFO "%s: 1checkpt6\n", __func__);
+				printk(KERN_INFO "%s: 1checkpt8\n", __func__);
 				knock_code_mid_x = (knock_code_mid_x + knock_code_x_arr[3]) / 2; // tmp. todo: work here. averaging functions, etc.
 			}
+		}
+
+		if (
+			(abs(knock_code_x_arr[0] - knock_code_x_arr[1]) < (2 * knock_code_delta)) &&
+			(abs(knock_code_x_arr[1] - knock_code_x_arr[2]) < (2 * knock_code_delta)) &&
+			(abs(knock_code_x_arr[2] - knock_code_x_arr[3]) < (2 * knock_code_delta)) &&
+			(abs(knock_code_x_arr[1] - knock_code_x_arr[3]) < (2 * knock_code_delta))
+		) {
+			printk(KERN_INFO "%s: 1checkpt9\n", __func__);
+			// this is bound to be [1,4][1,4][1,4][1,4]
+			knock_code_mid_x = MAX4(knock_code_x_arr[0],
+									knock_code_x_arr[1],
+									knock_code_x_arr[2],
+									knock_code_x_arr[3]) + (2 * knock_code_delta);
+		}
+
+		if (
+			(abs(knock_code_y_arr[0] - knock_code_y_arr[1]) < (2 * knock_code_delta)) &&
+			(abs(knock_code_y_arr[1] - knock_code_y_arr[2]) < (2 * knock_code_delta)) &&
+			(abs(knock_code_y_arr[2] - knock_code_y_arr[3]) < (2 * knock_code_delta)) &&
+			(abs(knock_code_y_arr[1] - knock_code_y_arr[3]) < (2 * knock_code_delta))
+		) {
+			printk(KERN_INFO "%s: 1checkptx\n", __func__);
+			// this is bound to be [1,4][1,4][1,4][1,4]
+			knock_code_mid_y = MAX4(knock_code_y_arr[0],
+									knock_code_y_arr[1],
+									knock_code_y_arr[2],
+									knock_code_y_arr[3]) + (2 * knock_code_delta);
 		}
 
 		knock_code_x = *x;
