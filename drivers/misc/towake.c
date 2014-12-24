@@ -675,6 +675,54 @@ void knock_code_check_pattern(void) {
 	}
 }
 
+int knock_code_get_max_min_x(int max, int n)
+{
+	// max = 1, ret max, else min
+	if (n < 2)
+		return knock_code_x_arr[0];
+
+	int ret_x = knock_code_x_arr[0];
+	int i = 0;
+
+	for (i = 1; i < n; i++) {
+		if (max) {
+			if (knock_code_x_arr[i] >= ret_x) {
+				ret_x = knock_code_x_arr[i];
+			}
+		} else {
+			if (knock_code_x_arr[i] <= ret_x) {
+				ret_x = knock_code_x_arr[i];
+			}
+		}
+	}
+
+	return ret_x;
+}
+
+int knock_code_get_max_min_y(int max, int n)
+{
+	// max = 1, ret max, else min
+	if (n < 2)
+		return knock_code_y_arr[0];
+
+	int ret_y = knock_code_y_arr[0];
+	int i = 0;
+
+	for (i = 1; i < n; i++) {
+		if (max) {
+			if (knock_code_y_arr[i] >= ret_y) {
+				ret_x = knock_code_y_arr[i];
+			}
+		} else {
+			if (knock_code_y_arr[i] <= ret_y) {
+				ret_y = knock_code_y_arr[i];
+			}
+		}
+	}
+
+	return ret_y;
+}
+
 void knock_code_fixup_inputs(int n) {
 	int i = 0;
 	for (i = 0; i < n; i++) {
@@ -764,13 +812,13 @@ void knock_code_func(int *x, int *y) {
 		//fix: 341x, 342x, 431x, 432x;
 		if (knock_code_y_arr[2] > knock_code_mid_y) {
 			printk(KERN_INFO "%s: checkpt1\n", __func__);
-			if (knock_code_y_arr[2] > MAX(knock_code_y_arr[0], knock_code_y_arr[1])) {
+			if (knock_code_y_arr[2] > knock_code_get_max_min_y(1, 2)) {
 				printk(KERN_INFO "%s: checkpt2\n", __func__);
 				knock_code_mid_y = (knock_code_mid_y + knock_code_y_arr[2]) / 2; // tmp. todo: work here. averaging functions, etc.
 			}
 		} else {
 			printk(KERN_INFO "%s: checkpt3\n", __func__);
-			if (knock_code_y_arr[2] < MIN(knock_code_y_arr[0], knock_code_y_arr[1])) {
+			if (knock_code_y_arr[2] < knock_code_get_max_min_y(0, 2)) {
 				printk(KERN_INFO "%s: checkpt4\n", __func__);
 				knock_code_mid_y = (knock_code_mid_y + knock_code_y_arr[2]) / 2; // tmp. todo: work here. averaging functions, etc.
 			}
@@ -779,19 +827,19 @@ void knock_code_func(int *x, int *y) {
 		//fix: 231x, 234x, 321x, 324x;
 		if (knock_code_x_arr[2] > knock_code_mid_x) {
 			printk(KERN_INFO "%s: checkpt5\n", __func__);
-			if (knock_code_x_arr[2] > MAX(knock_code_x_arr[0], knock_code_x_arr[1])) {
+			if (knock_code_x_arr[2] > knock_code_get_max_min_x(1, 2)) {
 				printk(KERN_INFO "%s: checkpt6\n", __func__);
 				knock_code_mid_x = (knock_code_mid_x + knock_code_x_arr[2]) / 2; // tmp. todo: work here. averaging functions, etc.
 			}
 		} else {
 			printk(KERN_INFO "%s: checkpt7\n", __func__);
-			if (knock_code_x_arr[2] < MIN(knock_code_x_arr[0], knock_code_x_arr[1])) {
+			if (knock_code_x_arr[2] < knock_code_get_max_min_x(0, 2)) {
 				printk(KERN_INFO "%s: checkpt8\n", __func__);
 				knock_code_mid_x = (knock_code_mid_x + knock_code_x_arr[2]) / 2; // tmp. todo: work here. averaging functions, etc.
 			}
 		}
 
-		if (knock_code_get_no_of_input_taps() == 3) {
+		if (knock_code_get_no_of_input_taps() == 3) { // make this a func!, bring above lines here
 			if (
 				(abs(knock_code_x_arr[0] - knock_code_x_arr[1]) < (2 * knock_code_delta)) &&
 				(abs(knock_code_x_arr[1] - knock_code_x_arr[2]) < (2 * knock_code_delta)) &&
@@ -832,13 +880,13 @@ void knock_code_func(int *x, int *y) {
 		//fix: [1,2][1,2][1,2][3,4]
 		if (knock_code_y_arr[3] > knock_code_mid_y) {
 			printk(KERN_INFO "%s: 1checkpt1\n", __func__);
-			if (knock_code_y_arr[3] > MAX3(knock_code_y_arr[0], knock_code_y_arr[1], knock_code_y_arr[2])) {
+			if (knock_code_y_arr[3] > knock_code_get_max_min_y(1, 3)) {
 				printk(KERN_INFO "%s: 1checkpt2\n", __func__);
 				knock_code_mid_y = (knock_code_mid_y + knock_code_y_arr[3]) / 2; // tmp. todo: work here. averaging functions, etc.
 			}
 		} else { //fix: [3,4][3,4][3,4][1,2]
 			printk(KERN_INFO "%s: 1checkpt3\n", __func__);
-			if (knock_code_y_arr[3] < MIN3(knock_code_y_arr[0], knock_code_y_arr[1], knock_code_y_arr[2])) {
+			if (knock_code_y_arr[3] < knock_code_get_max_min_y(0, 3)) {
 				printk(KERN_INFO "%s: 1checkpt4\n", __func__);
 				knock_code_mid_y = (knock_code_mid_y + knock_code_y_arr[3]) / 2; // tmp. todo: work here. averaging functions, etc.
 			}
@@ -847,13 +895,13 @@ void knock_code_func(int *x, int *y) {
 		//fix: [1,4][1,4][1,4][2,3]
 		if (knock_code_x_arr[3] > knock_code_mid_x) {
 			printk(KERN_INFO "%s: 1checkpt5\n", __func__);
-			if (knock_code_x_arr[3] > MAX3(knock_code_x_arr[0], knock_code_x_arr[1], knock_code_x_arr[2])) {
+			if (knock_code_x_arr[3] > knock_code_get_max_min_x(1, 3)) {
 				printk(KERN_INFO "%s: 1checkpt6\n", __func__);
 				knock_code_mid_x = (knock_code_mid_x + knock_code_x_arr[3]) / 2; // tmp. todo: work here. averaging functions, etc.
 			}
 		} else { //fix: [2,3][2,3][2,3][1,4]
 			printk(KERN_INFO "%s: 1checkpt7\n", __func__);
-			if (knock_code_x_arr[3] < MIN3(knock_code_x_arr[0], knock_code_x_arr[1], knock_code_x_arr[2])) {
+			if (knock_code_x_arr[3] < knock_code_get_max_min_x(0, 3)) {
 				printk(KERN_INFO "%s: 1checkpt8\n", __func__);
 				knock_code_mid_x = (knock_code_mid_x + knock_code_x_arr[3]) / 2; // tmp. todo: work here. averaging functions, etc.
 			}

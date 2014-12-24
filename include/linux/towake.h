@@ -32,6 +32,8 @@ void knock_code_reset_vars(int reset_time);
 void knock_code_func(int *x, int *y);
 
 int knock_code_get_no_of_input_taps(void);
+int knock_code_get_max_min_x(int max, int n);
+int knock_code_get_max_min_y(int max, int n);
 
 extern unsigned pocket_mod_switch;
 
