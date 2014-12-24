@@ -724,20 +724,28 @@ void knock_code_func(int *x, int *y) {
 	if (knock_code_touch_count == 2) { //third touch. lot to do here.
 
 		if (knock_code_y_arr[2] < knock_code_buffer_y) { // third touch above, i.e. first two touches around 4, 3
+			printk(KERN_INFO "%s: checkpt1\n", __func__); //341x, 342x, 431x, 432x; remaining: 343x, 433x, 434x, 344x
 			knock_code_mid_y = knock_code_buffer_y; //tmp. todo: work here. averaging functions, etc.
 		} else { //kcy2 > buffer, i.e. below.
+			printk(KERN_INFO "%s: checkpt2\n", __func__);
 			if (knock_code_y_arr[2] > knock_code_mid_y) {
+				printk(KERN_INFO "%s: checkpt3\n", __func__);
 				if (knock_code_y_arr[2] > MAX(knock_code_y_arr[0], knock_code_y_arr[1])) {
+					printk(KERN_INFO "%s: checkpt4\n", __func__);
 					knock_code_mid_y = (knock_code_mid_y + knock_code_y_arr[2]) / 2; // tmp. todo: work here. averaging functions, etc.
 				}
 			}
 		}
 
 		if (knock_code_x_arr[2] < knock_code_buffer_x) { // third touch left, i.e. first two touches around 2, 3
+			printk(KERN_INFO "%s: checkpt5\n", __func__); //231x, 234x, 321x, 324x; remaining: 232x, 233x, 322x, 323x
 			knock_code_mid_x = knock_code_buffer_x; //tmp. todo: work here. averaging functions, etc.
 		} else { //kcx2 > buffer, i.e. to right
+			printk(KERN_INFO "%s: checkpt6\n", __func__);
 			if (knock_code_x_arr[2] > knock_code_mid_x) {
+				printk(KERN_INFO "%s: checkpt7\n", __func__);
 				if (knock_code_x_arr[2] > MAX(knock_code_x_arr[0], knock_code_x_arr[1])) {
+					printk(KERN_INFO "%s: checkpt8\n", __func__);
 					knock_code_mid_x = (knock_code_mid_x + knock_code_x_arr[2]) / 2; // tmp. todo: work here. averaging functions, etc.
 				}
 			}
