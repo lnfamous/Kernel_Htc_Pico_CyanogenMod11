@@ -59,12 +59,10 @@ unsigned knock_code_switch = 1;
 static unsigned knock_code_max_timeout = 400;
 static unsigned knock_code_delta = 50;
 static s64 knock_code_time[2] = {0, 0};
-static unsigned int knock_code_x = 0;
-static unsigned int knock_code_y = 0;
-int knock_code_pattern[4] = {1,2,3,4};
-int knock_code_input[4]   = {0,0,0,0};
-int knock_code_x_arr[4]   = {0,0,0,0};
-int knock_code_y_arr[4]   = {0,0,0,0};
+int knock_code_pattern[8] = {1,2,3,4,0,0,0,0};
+int knock_code_input[8]   = {0,0,0,0,0,0,0,0};
+int knock_code_x_arr[8]   = {0,0,0,0,0,0,0,0};
+int knock_code_y_arr[8]   = {0,0,0,0,0,0,0,0};
 int knock_code_touch_count = 0;
 int knock_code_mid_x = 0;
 int knock_code_mid_y = 0;
@@ -662,8 +660,6 @@ void knock_code_func(int *x, int *y) {
 		printk(KERN_INFO "%s: knock_code_mid_x = %d\n", __func__, knock_code_mid_x);
 		printk(KERN_INFO "%s: knock_code_mid_y = %d\n", __func__, knock_code_mid_y);
 
-		knock_code_x = *x;
-		knock_code_y = *y;
 		printk(KERN_INFO "%s: kctc = 1, x = %d, y = %d\n", __func__, *x, *y);
 		printk(KERN_INFO "%s: ---------------------------------------------------\n", __func__);
 		knock_code_time[0] = knock_code_time[1];
@@ -704,8 +700,6 @@ void knock_code_func(int *x, int *y) {
 			}
 		}
 
-		knock_code_x = *x;
-		knock_code_y = *y;
 		printk(KERN_INFO "%s: kctc = 2, x = %d, y = %d\n", __func__, *x, *y);
 		printk(KERN_INFO "%s: kcmidx = %d\n", __func__, knock_code_mid_x);
 		printk(KERN_INFO "%s: kcmidy = %d\n", __func__, knock_code_mid_y);
@@ -776,8 +770,6 @@ void knock_code_func(int *x, int *y) {
 									knock_code_y_arr[3]) + (2 * knock_code_delta);
 		}
 
-		knock_code_x = *x;
-		knock_code_y = *y;
 		printk(KERN_INFO "%s: kctc = 3, x = %d, y = %d\n", __func__, *x, *y);
 		printk(KERN_INFO "%s: kcmidx = %d\n", __func__, knock_code_mid_x);
 		printk(KERN_INFO "%s: kcmidy = %d\n", __func__, knock_code_mid_y);
