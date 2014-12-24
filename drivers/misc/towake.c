@@ -368,7 +368,7 @@ static ssize_t knock_code_pattern_set(struct device * dev,
 	}
 
 	for (i = 0; i < sizeof_charbuf; i++) {
-		if ((buf[i] - '0') > 4) {
+		if ((buf[i] - '0') > 4) { //if you give me invalid input, i won't parse it.
 			return size;
 		}
 	}
