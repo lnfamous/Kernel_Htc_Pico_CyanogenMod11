@@ -355,10 +355,6 @@ static ssize_t knock_code_pattern_set(struct device * dev,
 	int sizeof_charbuf = size - 1;
 	int i = 0;
 
-	if (sizeof_charbuf == 1) { // if 1 char, leave the pattern alone
-		return size;
-	}
-
 	if (sizeof_charbuf < 3) { //min 3
 		return size;
 	}
