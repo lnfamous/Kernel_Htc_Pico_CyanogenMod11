@@ -68,9 +68,6 @@ int knock_code_y_arr[4]   = {0,0,0,0};
 int knock_code_touch_count = 0;
 int knock_code_mid_x = 0;
 int knock_code_mid_y = 0;
-int knock_code_buffer_x = 0;
-int knock_code_buffer_y = 0;
-int knock_code_tmp_var = 0;
 
 unsigned is_screen_on;
 
@@ -553,117 +550,74 @@ void doubletap2wake_func(int *x, int *y) {
 
 }
 
-void knock_code_reset_vars(void) {
-	knock_code_touch_count = 0;
-	knock_code_input[0] = 0;
-	knock_code_input[1] = 0;
-	knock_code_input[2] = 0;
-	knock_code_input[3] = 0;
-
-	knock_code_x_arr[0] = 0;
-	knock_code_x_arr[1] = 0;
-	knock_code_x_arr[2] = 0;
-	knock_code_x_arr[3] = 0;
-
-	knock_code_y_arr[0] = 0;
-	knock_code_y_arr[1] = 0;
-	knock_code_y_arr[2] = 0;
-	knock_code_y_arr[3] = 0;
-
-	knock_code_mid_x = knock_code_mid_y = 0;
-
-	knock_code_buffer_x = knock_code_buffer_y = 0;
-
-	knock_code_time[0] = knock_code_time[1] = 0;
-
-	knock_code_tmp_var = 0;
-}
-
-int knock_code_check_n_reset(void) {
-
-	printk(KERN_INFO "%s: knock_code_time[0] = %lld\n", __func__, knock_code_time[0]);
-	printk(KERN_INFO "%s: knock_code_time[1] = %lld\n", __func__, knock_code_time[1]);
-
-	if (knock_code_time[0] == 0) {
-
-		knock_code_time[0] = ktime_to_ms(ktime_get());
-		knock_code_time[1] = 0;
-		printk(KERN_INFO "%s: knock_code begin\n", __func__);
-
-		knock_code_touch_count = 0;
-
-		knock_code_input[0] = 0;
-		knock_code_input[1] = 0;
-		knock_code_input[2] = 0;
-		knock_code_input[3] = 0;
-
-		knock_code_x_arr[0] = 0;
-		knock_code_x_arr[1] = 0;
-		knock_code_x_arr[2] = 0;
-		knock_code_x_arr[3] = 0;
-
-		knock_code_y_arr[0] = 0;
-		knock_code_y_arr[1] = 0;
-		knock_code_y_arr[2] = 0;
-		knock_code_y_arr[3] = 0;
-
-		knock_code_mid_x = knock_code_mid_y = 0;
-
-		knock_code_buffer_x = knock_code_buffer_y = 0;
-
-		knock_code_tmp_var = 0;
-
-		return 0;
-
-	} else if ((knock_code_time[0]) && (!knock_code_time[1])) {
-
-		knock_code_time[1] = ktime_to_ms(ktime_get());
-
-		printk(KERN_INFO "%s: knock_code_time[1] - knock_code_time[0] = %lld\n", __func__, (knock_code_time[1]-knock_code_time[0]));
-
-		if ((knock_code_time[1]-knock_code_time[0])>knock_code_max_timeout) {
-
-			printk(KERN_INFO "%s: knock_code reset\n", __func__);
-			knock_code_time[0] = knock_code_time[1];
-			knock_code_time[1] = 0;
-
-			knock_code_touch_count = 0;
-			knock_code_input[0] = 0;
-			knock_code_input[1] = 0;
-			knock_code_input[2] = 0;
-			knock_code_input[3] = 0;
-
-			knock_code_x_arr[0] = 0;
-			knock_code_x_arr[1] = 0;
-			knock_code_x_arr[2] = 0;
-			knock_code_x_arr[3] = 0;
-
-			knock_code_y_arr[0] = 0;
-			knock_code_y_arr[1] = 0;
-			knock_code_y_arr[2] = 0;
-			knock_code_y_arr[3] = 0;
-
-			knock_code_mid_x = knock_code_mid_y = 0;
-
-			knock_code_buffer_x = knock_code_buffer_y = 0;
-
-			knock_code_tmp_var = 0;
-
-			return 0;
-
-		}
-	}
-
-	return 0;
-
-}
-
 #define MIN(a,b) ((a) <= (b) ? (a) : (b))
 #define MAX(a,b) ((a) >= (b) ? (a) : (b))
 #define MIN3(a,b,c) ( MIN(a, MAX(b,c)) )
 #define MAX3(a,b,c) ( MAX(a, MAX(b,c)) )
 #define MIN4(a,b,c,d) ( MIN(a, MIN3(b,c,d)) )
 #define MAX4(a,b,c,d) ( MAX(a, MAX3(b,c,d)) )
+
+void knock_code_reset_vars(int reset_time)
+{
+	knock_code_touch_count = 0;
+	knock_code_input[0] = knock_code_input[1] = knock_code_input[2] = knock_code_input[3] = 0;
+	knock_code_x_arr[0] = knock_code_x_arr[1] = knock_code_x_arr[2] = knock_code_x_arr[3] = 0;
+	knock_code_y_arr[0] = knock_code_y_arr[1] = knock_code_y_arr[2] = knock_code_y_arr[3] = 0;
+	knock_code_mid_x = knock_code_mid_y = 0;
+	if (reset_time)
+		knock_code_time[0] = knock_code_time[1] = 0;
+}
+
+void knock_code_check_n_reset(void)
+{
+	if (knock_code_time[0] == 0) {
+		knock_code_time[0] = ktime_to_ms(ktime_get());
+		knock_code_time[1] = 0;
+		knock_code_reset_vars(0);
+		return;
+	} else if ((knock_code_time[0]) && (!knock_code_time[1])) {
+		knock_code_time[1] = ktime_to_ms(ktime_get());
+		if ((knock_code_time[1]-knock_code_time[0])>knock_code_max_timeout) {
+			knock_code_time[0] = knock_code_time[1];
+			knock_code_time[1] = 0;
+			knock_code_reset_vars(0);
+		}
+	}
+	return;
+}
+
+void knock_code_fixup_inputs(int n) {
+	int i = 0;
+	for (i = 0; i < n; i++) {
+		if ((knock_code_x_arr[i] <= knock_code_mid_x) &&
+			(knock_code_y_arr[i] <= knock_code_mid_y)) {
+			knock_code_input[i] = 1;
+			printk(KERN_INFO "%s: fixing kcin[%d] = %d\n", __func__, i, knock_code_input[i]);
+			printk(KERN_INFO "%s: ---------------------------------------------------\n", __func__);
+		} else if ((knock_code_x_arr[i] >= knock_code_mid_x) &&
+			(knock_code_y_arr[i] <= knock_code_mid_y)) {
+			knock_code_input[i] = 2;
+			printk(KERN_INFO "%s: fixing kcin[%d] = %d\n", __func__, i, knock_code_input[i]);
+			printk(KERN_INFO "%s: ---------------------------------------------------\n", __func__);
+		} else if ((knock_code_x_arr[i] >= knock_code_mid_x) &&
+			(knock_code_y_arr[i] >= knock_code_mid_y)) {
+			knock_code_input[i] = 3;
+			printk(KERN_INFO "%s: fixing kcin[%d] = %d\n", __func__, i, knock_code_input[i]);
+			printk(KERN_INFO "%s: ---------------------------------------------------\n", __func__);
+		} else if ((knock_code_x_arr[i] <= knock_code_mid_x) &&
+			(knock_code_y_arr[i] >= knock_code_mid_y)) {
+			knock_code_input[i] = 4;
+			printk(KERN_INFO "%s: fixing kcin[%d] = %d\n", __func__, i, knock_code_input[i]);
+			printk(KERN_INFO "%s: ---------------------------------------------------\n", __func__);
+		}
+	}
+
+	printk(KERN_INFO "%s: kcin[0] = %d\n", __func__, knock_code_input[0]);
+	printk(KERN_INFO "%s: kcin[1] = %d\n", __func__, knock_code_input[1]);
+	printk(KERN_INFO "%s: kcin[2] = %d\n", __func__, knock_code_input[2]);
+	printk(KERN_INFO "%s: kcin[3] = %d\n", __func__, knock_code_input[3]);
+	printk(KERN_INFO "%s: ---------------------------------------------------\n", __func__);
+}
 
 void knock_code_func(int *x, int *y) {
 
@@ -697,21 +651,16 @@ void knock_code_func(int *x, int *y) {
 			)) {
 			printk(KERN_INFO "%s: it is double tap, return\n", __func__);
 			printk(KERN_INFO "%s: ---------------------------------------------------\n", __func__);
-			knock_code_reset_vars();
+			knock_code_reset_vars(1);
 			return;
 		}
 
 		knock_code_mid_x = ((knock_code_x_arr[0] + knock_code_x_arr[1]) / 2);
-		knock_code_buffer_x = MIN(knock_code_x_arr[0], knock_code_x_arr[1]) - (knock_code_mid_x - MIN(knock_code_x_arr[0], knock_code_x_arr[1]));
 
 		knock_code_mid_y = ((knock_code_y_arr[0] + knock_code_y_arr[1]) / 2);
-		knock_code_buffer_y = MIN(knock_code_y_arr[0], knock_code_y_arr[1]) - (knock_code_mid_y - MIN(knock_code_y_arr[0], knock_code_y_arr[1]));
 
 		printk(KERN_INFO "%s: knock_code_mid_x = %d\n", __func__, knock_code_mid_x);
 		printk(KERN_INFO "%s: knock_code_mid_y = %d\n", __func__, knock_code_mid_y);
-
-		printk(KERN_INFO "%s: knock_code_buffer_x = %d\n", __func__, knock_code_buffer_x);
-		printk(KERN_INFO "%s: knock_code_buffer_y = %d\n", __func__, knock_code_buffer_y);
 
 		knock_code_x = *x;
 		knock_code_y = *y;
@@ -764,8 +713,8 @@ void knock_code_func(int *x, int *y) {
 		knock_code_time[0] = knock_code_time[1];
 		knock_code_time[1] = 0;
 		knock_code_touch_count += 1;
+		knock_code_fixup_inputs(3);
 		return;
-
 	}
 
 	if (knock_code_touch_count == 3) {
@@ -840,37 +789,7 @@ void knock_code_func(int *x, int *y) {
 
 	}
 
-	int i = 0;
-
-	for (i = 0; i < 4; i++) {
-		if ((knock_code_x_arr[i] <= knock_code_mid_x) &&
-			(knock_code_y_arr[i] <= knock_code_mid_y)) {
-			knock_code_input[i] = 1;
-			printk(KERN_INFO "%s: fixing kcin[%d] = %d\n", __func__, i, knock_code_input[i]);
-			printk(KERN_INFO "%s: ---------------------------------------------------\n", __func__);
-		} else if ((knock_code_x_arr[i] >= knock_code_mid_x) &&
-			(knock_code_y_arr[i] <= knock_code_mid_y)) {
-			knock_code_input[i] = 2;
-			printk(KERN_INFO "%s: fixing kcin[%d] = %d\n", __func__, i, knock_code_input[i]);
-			printk(KERN_INFO "%s: ---------------------------------------------------\n", __func__);
-		} else if ((knock_code_x_arr[i] >= knock_code_mid_x) &&
-			(knock_code_y_arr[i] >= knock_code_mid_y)) {
-			knock_code_input[i] = 3;
-			printk(KERN_INFO "%s: fixing kcin[%d] = %d\n", __func__, i, knock_code_input[i]);
-			printk(KERN_INFO "%s: ---------------------------------------------------\n", __func__);
-		} else if ((knock_code_x_arr[i] <= knock_code_mid_x) &&
-			(knock_code_y_arr[i] >= knock_code_mid_y)) {
-			knock_code_input[i] = 4;
-			printk(KERN_INFO "%s: fixing kcin[%d] = %d\n", __func__, i, knock_code_input[i]);
-			printk(KERN_INFO "%s: ---------------------------------------------------\n", __func__);
-		}
-	}
-
-	printk(KERN_INFO "%s: kcin[0] = %d\n", __func__, knock_code_input[0]);
-	printk(KERN_INFO "%s: kcin[1] = %d\n", __func__, knock_code_input[1]);
-	printk(KERN_INFO "%s: kcin[2] = %d\n", __func__, knock_code_input[2]);
-	printk(KERN_INFO "%s: kcin[3] = %d\n", __func__, knock_code_input[3]);
-	printk(KERN_INFO "%s: ---------------------------------------------------\n", __func__);
+	knock_code_fixup_inputs(4);
 
 	if (
 		(knock_code_pattern[0] == knock_code_input[0]) &&
@@ -883,7 +802,7 @@ void knock_code_func(int *x, int *y) {
 		printk(KERN_INFO "%s: ---------------------------------------------------\n", __func__);
 	}
 
-	knock_code_reset_vars();
+	knock_code_reset_vars(1);
 	printk(KERN_INFO "%s: ###################################################\n", __func__);
 	return;
 

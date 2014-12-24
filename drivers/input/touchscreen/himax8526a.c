@@ -593,9 +593,10 @@ static void himax_ts_work_func(struct work_struct *work)
 					doubletap2wake_func(&x, &y);
 		}
 		if (knock_code_switch) {
-			if (!(is_screen_on))
-				if (!(knock_code_check_n_reset()))
-					knock_code_func(&x, &y);
+			if (!(is_screen_on)) {
+				knock_code_check_n_reset();
+				knock_code_func(&x, &y);
+			}
 		}
 #endif
 	} else {
