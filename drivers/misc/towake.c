@@ -657,6 +657,7 @@ void knock_code_check_pattern(void) {
 		}
 	}
 
+	//todo: rotated pattern.
 	if (valid) {
 		printk(KERN_INFO "%s: pattern matches!\n", __func__);
 		//presspwr();
