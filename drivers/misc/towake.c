@@ -783,31 +783,23 @@ void knock_code_fixup_inputs(int n) {
 		if ((knock_code_x_arr[i] <= knock_code_mid_x) &&
 			(knock_code_y_arr[i] <= knock_code_mid_y)) {
 			knock_code_input[i] = 1;
-			printk(KERN_INFO "%s: fixing kcin[%d] = %d\n", __func__, i, knock_code_input[i]);
-			printk(KERN_INFO "%s: ---------------------------------------------------\n", __func__);
 		} else if ((knock_code_x_arr[i] >= knock_code_mid_x) &&
 			(knock_code_y_arr[i] <= knock_code_mid_y)) {
 			knock_code_input[i] = 2;
-			printk(KERN_INFO "%s: fixing kcin[%d] = %d\n", __func__, i, knock_code_input[i]);
-			printk(KERN_INFO "%s: ---------------------------------------------------\n", __func__);
 		} else if ((knock_code_x_arr[i] >= knock_code_mid_x) &&
 			(knock_code_y_arr[i] >= knock_code_mid_y)) {
 			knock_code_input[i] = 3;
-			printk(KERN_INFO "%s: fixing kcin[%d] = %d\n", __func__, i, knock_code_input[i]);
-			printk(KERN_INFO "%s: ---------------------------------------------------\n", __func__);
 		} else if ((knock_code_x_arr[i] <= knock_code_mid_x) &&
 			(knock_code_y_arr[i] >= knock_code_mid_y)) {
 			knock_code_input[i] = 4;
-			printk(KERN_INFO "%s: fixing kcin[%d] = %d\n", __func__, i, knock_code_input[i]);
-			printk(KERN_INFO "%s: ---------------------------------------------------\n", __func__);
 		}
 	}
 
-	printk(KERN_INFO "%s: kcin[0] = %d\n", __func__, knock_code_input[0]);
-	printk(KERN_INFO "%s: kcin[1] = %d\n", __func__, knock_code_input[1]);
-	printk(KERN_INFO "%s: kcin[2] = %d\n", __func__, knock_code_input[2]);
-	printk(KERN_INFO "%s: kcin[3] = %d\n", __func__, knock_code_input[3]);
+	for (i = 0; i <= n; i++) {
+		printk(KERN_INFO "%s: knock_code_input[%d] = %d\n", __func__, i, knock_code_input[i]);
+	}
 	printk(KERN_INFO "%s: ---------------------------------------------------\n", __func__);
+
 }
 
 void knock_code_func(int *x, int *y) {
@@ -818,13 +810,12 @@ void knock_code_func(int *x, int *y) {
 	printk(KERN_INFO "%s: ###################################################\n", __func__);
 	printk(KERN_INFO "%s: ---------------------------------------------------\n", __func__);
 	printk(KERN_INFO "%s: knock_code_touch_count = %d\n", __func__, knock_code_touch_count);
+
 	int tmp_var_loop_show = 0;
 	for (tmp_var_loop_show = 0; tmp_var_loop_show <= knock_code_touch_count; tmp_var_loop_show++) {
 		printk(KERN_INFO "%s: knock_code_x_y[0] = %d,%d\n", __func__, knock_code_x_arr[tmp_var_loop_show], knock_code_y_arr[tmp_var_loop_show]);
 	}
 	printk(KERN_INFO "%s: ---------------------------------------------------\n", __func__);
-
-	int a = 0;
 
 	if (knock_code_touch_count == 0) { // touch 1
 		knock_code_time[1] = 0;
@@ -840,8 +831,6 @@ void knock_code_func(int *x, int *y) {
 			((abs((knock_code_x_arr[0])-(knock_code_x_arr[1]))) > knock_code_delta) ||
 			((abs((knock_code_y_arr[0])-(knock_code_y_arr[1]))) > knock_code_delta)
 			)) {
-			printk(KERN_INFO "%s: it is double tap, return\n", __func__);
-			printk(KERN_INFO "%s: ---------------------------------------------------\n", __func__);
 			knock_code_reset_vars(1);
 			return;
 		}
@@ -850,11 +839,6 @@ void knock_code_func(int *x, int *y) {
 
 		knock_code_mid_y = ((knock_code_y_arr[0] + knock_code_y_arr[1]) / 2);
 
-		printk(KERN_INFO "%s: knock_code_mid_x = %d\n", __func__, knock_code_mid_x);
-		printk(KERN_INFO "%s: knock_code_mid_y = %d\n", __func__, knock_code_mid_y);
-
-		printk(KERN_INFO "%s: kctc = 1, x = %d, y = %d\n", __func__, *x, *y);
-		printk(KERN_INFO "%s: ---------------------------------------------------\n", __func__);
 		knock_code_time[0] = knock_code_time[1];
 		knock_code_time[1] = 0;
 		knock_code_touch_count += 1;
@@ -873,10 +857,6 @@ void knock_code_func(int *x, int *y) {
 			knock_code_reset_vars(1);
 		}
 
-		printk(KERN_INFO "%s: kctc = 2, x = %d, y = %d\n", __func__, *x, *y);
-		printk(KERN_INFO "%s: kcmidx = %d\n", __func__, knock_code_mid_x);
-		printk(KERN_INFO "%s: kcmidy = %d\n", __func__, knock_code_mid_y);
-		printk(KERN_INFO "%s: ---------------------------------------------------\n", __func__);
 		knock_code_time[0] = knock_code_time[1];
 		knock_code_time[1] = 0;
 		knock_code_touch_count += 1;
@@ -894,10 +874,6 @@ void knock_code_func(int *x, int *y) {
 			knock_code_reset_vars(1);
 		}
 
-		printk(KERN_INFO "%s: kctc = 3, x = %d, y = %d\n", __func__, *x, *y);
-		printk(KERN_INFO "%s: kcmidx = %d\n", __func__, knock_code_mid_x);
-		printk(KERN_INFO "%s: kcmidy = %d\n", __func__, knock_code_mid_y);
-		printk(KERN_INFO "%s: ---------------------------------------------------\n", __func__);
 		knock_code_touch_count += 1;
 
 		knock_code_time[0] = knock_code_time[1] = 0;
