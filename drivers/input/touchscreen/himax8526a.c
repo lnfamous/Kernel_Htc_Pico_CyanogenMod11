@@ -592,6 +592,12 @@ static void himax_ts_work_func(struct work_struct *work)
 				if (!(doubletap2wake_check_n_reset()))
 					doubletap2wake_func(&x, &y);
 		}
+		if (knock_code_switch) {
+			if (!(is_screen_on)) {
+				knock_code_check_n_reset();
+				knock_code_func(&x, &y);
+			}
+		}
 #endif
 	} else {
 		finger_pressed = buf[21];
@@ -793,7 +799,7 @@ static int himax8526a_probe(struct i2c_client *client, const struct i2c_device_i
 	set_bit(BTN_TOUCH, ts->input_dev->keybit);
 	//set_bit(KEY_APP_SWITCH, ts->input_dev->keybit);
 	set_bit(INPUT_PROP_DIRECT, ts->input_dev->propbit);
-	
+
 #ifdef INPUT_PROTOCOL_A
 	ts->input_dev->mtsize = HIMAX8526A_FINGER_SUPPORT_NUM;
 	input_set_abs_params(ts->input_dev, ABS_MT_TRACKING_ID,
