@@ -59,10 +59,10 @@ unsigned knock_code_switch = 1;
 static unsigned knock_code_max_timeout = 400;
 static unsigned knock_code_delta = 50;
 static s64 knock_code_time[2] = {0, 0};
-int knock_code_pattern[8] = {1,2,3,4,0,0,0,0};
-int knock_code_input[8]   = {0,0,0,0,0,0,0,0};
-int knock_code_x_arr[8]   = {0,0,0,0,0,0,0,0};
-int knock_code_y_arr[8]   = {0,0,0,0,0,0,0,0};
+int knock_code_pattern[16] = {1,2,3,4,0,0,0,0,0,0,0,0,0,0,0,0};
+int knock_code_input[16]   = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+int knock_code_x_arr[16]   = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+int knock_code_y_arr[16]   = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 int knock_code_touch_count = 0;
 int knock_code_mid_x = 0;
 int knock_code_mid_y = 0;
@@ -369,7 +369,7 @@ static ssize_t knock_code_pattern_set(struct device * dev,
 		}
 	}
 
-	for (i = 0; i < 8; i++) {
+	for (i = 0; i < 16; i++) {
 		if (i < sizeof_charbuf) {
 			knock_code_pattern[i] = buf[i] - '0';
 		} else {
@@ -378,7 +378,7 @@ static ssize_t knock_code_pattern_set(struct device * dev,
 	}
 
 	bool val = false;
-	for (i = 0; i < 8; i++) {
+	for (i = 0; i < 16; i++) {
 		if (knock_code_pattern[i] != 0) {
 			if (!((knock_code_pattern[i] == 2) || (knock_code_pattern[i] == 3))) {
 				val = true;
@@ -386,7 +386,7 @@ static ssize_t knock_code_pattern_set(struct device * dev,
 		}
 	}
 	if (val == false) { //everything's 2 or 3, change it to 1, 4
-		for (i = 0; i < 8; i++) {
+		for (i = 0; i < 16; i++) {
 			if (knock_code_pattern[i]!=0) {
 				if (knock_code_pattern[i] == 2) {
 					knock_code_pattern[i] = 1;
@@ -399,7 +399,7 @@ static ssize_t knock_code_pattern_set(struct device * dev,
 	}
 
 	val = false;
-	for (i = 0; i < 8; i++) {
+	for (i = 0; i < 16; i++) {
 		if (knock_code_pattern[i] != 0) {
 			if (!((knock_code_pattern[i] == 4) || (knock_code_pattern[i] == 3))) {
 				val = true;
@@ -407,7 +407,7 @@ static ssize_t knock_code_pattern_set(struct device * dev,
 		}
 	}
 	if (val == false) { //everything's 4 or 3, change it to 1, 2
-		for (i = 0; i < 8; i++) {
+		for (i = 0; i < 16; i++) {
 			if (knock_code_pattern[i]!=0) {
 				if (knock_code_pattern[i] == 4) {
 					knock_code_pattern[i] = 1;
@@ -640,12 +640,12 @@ void knock_code_check_n_reset(void)
 
 int knock_code_get_no_of_input_taps(void) {
 	int i = 0;
-	for (i = 0; i < 8; i++) {
+	for (i = 0; i < 16; i++) {
 		if (knock_code_pattern[i] == 0) {
 			return i;
 		}
 	}
-	return 8;
+	return 16;
 }
 
 int knock_code_check_pattern(void) {
