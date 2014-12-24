@@ -629,7 +629,7 @@ void knock_code_check_n_reset(void)
 		return;
 	} else if ((knock_code_time[0]) && (!knock_code_time[1])) {
 		knock_code_time[1] = ktime_to_ms(ktime_get());
-		if ((knock_code_time[1]-knock_code_time[0])>knock_code_max_timeout) {
+		if ((knock_code_time[1]-knock_code_time[0]) > knock_code_max_timeout) {
 			knock_code_time[0] = knock_code_time[1];
 			knock_code_time[1] = 0;
 			knock_code_reset_vars(0);
