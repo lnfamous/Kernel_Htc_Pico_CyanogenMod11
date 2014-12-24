@@ -711,7 +711,7 @@ int knock_code_get_max_min_y(int max, int n)
 	for (i = 1; i < n; i++) {
 		if (max) {
 			if (knock_code_y_arr[i] >= ret_y) {
-				ret_x = knock_code_y_arr[i];
+				ret_y = knock_code_y_arr[i];
 			}
 		} else {
 			if (knock_code_y_arr[i] <= ret_y) {
