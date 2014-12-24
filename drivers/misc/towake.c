@@ -719,9 +719,73 @@ int knock_code_get_max_min_y(int max, int n)
 	return ret_y;
 }
 
+void knock_code_equalizer_func(int n)
+{
+
+	if (n < 2) // ignore first two touches
+		return;
+
+	if (knock_code_y_arr[n] > knock_code_mid_y) {
+		if (knock_code_y_arr[n] > knock_code_get_max_min_y(1, n)) {
+			knock_code_mid_y = (knock_code_mid_y + knock_code_y_arr[n]) / 2; // tmp. todo: work here. averaging functions, etc.
+		}
+	} else {
+		if (knock_code_y_arr[n] < knock_code_get_max_min_y(0, n)) {
+			knock_code_mid_y = (knock_code_mid_y + knock_code_y_arr[n]) / 2; // tmp. todo: work here. averaging functions, etc.
+		}
+	}
+
+	if (knock_code_x_arr[n] > knock_code_mid_x) {
+		if (knock_code_x_arr[n] > knock_code_get_max_min_x(1, n)) {
+			knock_code_mid_x = (knock_code_mid_x + knock_code_x_arr[n]) / 2; // tmp. todo: work here. averaging functions, etc.
+		}
+	} else {
+		if (knock_code_x_arr[n] < knock_code_get_max_min_x(0, n)) {
+			knock_code_mid_x = (knock_code_mid_x + knock_code_x_arr[n]) / 2; // tmp. todo: work here. averaging functions, etc.
+		}
+	}
+
+}
+
+void knock_code_check_for_gamma_variant(int n)
+{
+	if (n < 2) // how about no?
+		return;
+
+	int i = 0;
+	int j = 0;
+	bool val = true;
+
+	for (i = 0; i <= n; i++) {
+		for (j = i + 1; j <= n; j++) {
+			if (abs(knock_code_x_arr[i] - knock_code_x_arr[j]) > (2 * knock_code_delta)) {
+				val = false;
+			}
+		}
+	}
+
+	if (val) {
+		knock_code_mid_x = knock_code_get_max_min_x(1, n) + (2 * knock_code_delta);
+	}
+
+	val = true;
+
+	for (i = 0; i <= n; i++) {
+		for (j = i + 1; j <= n; j++) {
+			if (abs(knock_code_y_arr[i] - knock_code_y_arr[j]) > (2 * knock_code_delta)) {
+				val = false;
+			}
+		}
+	}
+
+	if (val) {
+		knock_code_mid_y = knock_code_get_max_min_y(1, n) + (2 * knock_code_delta);
+	}
+}
+
 void knock_code_fixup_inputs(int n) {
 	int i = 0;
-	for (i = 0; i < n; i++) {
+	for (i = 0; i <= n; i++) {
 		if ((knock_code_x_arr[i] <= knock_code_mid_x) &&
 			(knock_code_y_arr[i] <= knock_code_mid_y)) {
 			knock_code_input[i] = 1;
@@ -805,59 +869,12 @@ void knock_code_func(int *x, int *y) {
 
 	if (knock_code_touch_count == 2) { //third touch. lot to do here.
 
+		knock_code_equalizer_func(knock_code_touch_count);
+
 		//fix: 341x, 342x, 431x, 432x;
-		if (knock_code_y_arr[2] > knock_code_mid_y) {
-			printk(KERN_INFO "%s: checkpt1\n", __func__);
-			if (knock_code_y_arr[2] > knock_code_get_max_min_y(1, 2)) {
-				printk(KERN_INFO "%s: checkpt2\n", __func__);
-				knock_code_mid_y = (knock_code_mid_y + knock_code_y_arr[2]) / 2; // tmp. todo: work here. averaging functions, etc.
-			}
-		} else {
-			printk(KERN_INFO "%s: checkpt3\n", __func__);
-			if (knock_code_y_arr[2] < knock_code_get_max_min_y(0, 2)) {
-				printk(KERN_INFO "%s: checkpt4\n", __func__);
-				knock_code_mid_y = (knock_code_mid_y + knock_code_y_arr[2]) / 2; // tmp. todo: work here. averaging functions, etc.
-			}
-		}
-
-		//fix: 231x, 234x, 321x, 324x;
-		if (knock_code_x_arr[2] > knock_code_mid_x) {
-			printk(KERN_INFO "%s: checkpt5\n", __func__);
-			if (knock_code_x_arr[2] > knock_code_get_max_min_x(1, 2)) {
-				printk(KERN_INFO "%s: checkpt6\n", __func__);
-				knock_code_mid_x = (knock_code_mid_x + knock_code_x_arr[2]) / 2; // tmp. todo: work here. averaging functions, etc.
-			}
-		} else {
-			printk(KERN_INFO "%s: checkpt7\n", __func__);
-			if (knock_code_x_arr[2] < knock_code_get_max_min_x(0, 2)) {
-				printk(KERN_INFO "%s: checkpt8\n", __func__);
-				knock_code_mid_x = (knock_code_mid_x + knock_code_x_arr[2]) / 2; // tmp. todo: work here. averaging functions, etc.
-			}
-		}
-
-		if (knock_code_get_no_of_input_taps() == 3) { // make this a func!, bring above lines here
-			if (
-				(abs(knock_code_x_arr[0] - knock_code_x_arr[1]) < (2 * knock_code_delta)) &&
-				(abs(knock_code_x_arr[1] - knock_code_x_arr[2]) < (2 * knock_code_delta)) &&
-				(abs(knock_code_x_arr[0] - knock_code_x_arr[2]) < (2 * knock_code_delta))
-			) {
-				// this is bound to be [1,4][1,4][1,4]
-				knock_code_mid_x = MAX3(knock_code_x_arr[0],
-										knock_code_x_arr[1],
-										knock_code_x_arr[2]) + (2 * knock_code_delta);
-			}
-
-			if (
-				(abs(knock_code_y_arr[0] - knock_code_y_arr[1]) < (2 * knock_code_delta)) &&
-				(abs(knock_code_y_arr[1] - knock_code_y_arr[2]) < (2 * knock_code_delta)) &&
-				(abs(knock_code_y_arr[0] - knock_code_y_arr[2]) < (2 * knock_code_delta))
-			) {
-				// this is bound to be [1,2][1,2][1,2]
-				knock_code_mid_y = MAX3(knock_code_y_arr[0],
-										knock_code_y_arr[1],
-										knock_code_y_arr[2]) + (2 * knock_code_delta);
-			}
-			knock_code_fixup_inputs(3);
+		if (knock_code_get_no_of_input_taps() == (knock_code_touch_count + 1)) { // make this a func!, bring above lines here
+			knock_code_check_for_gamma_variant(knock_code_touch_count);
+			knock_code_fixup_inputs(knock_code_touch_count);
 			knock_code_check_pattern();
 			knock_code_reset_vars(1);
 		}
@@ -873,70 +890,12 @@ void knock_code_func(int *x, int *y) {
 	}
 
 	if (knock_code_touch_count == 3) {
-		//fix: [1,2][1,2][1,2][3,4]
-		if (knock_code_y_arr[3] > knock_code_mid_y) {
-			printk(KERN_INFO "%s: 1checkpt1\n", __func__);
-			if (knock_code_y_arr[3] > knock_code_get_max_min_y(1, 3)) {
-				printk(KERN_INFO "%s: 1checkpt2\n", __func__);
-				knock_code_mid_y = (knock_code_mid_y + knock_code_y_arr[3]) / 2; // tmp. todo: work here. averaging functions, etc.
-			}
-		} else { //fix: [3,4][3,4][3,4][1,2]
-			printk(KERN_INFO "%s: 1checkpt3\n", __func__);
-			if (knock_code_y_arr[3] < knock_code_get_max_min_y(0, 3)) {
-				printk(KERN_INFO "%s: 1checkpt4\n", __func__);
-				knock_code_mid_y = (knock_code_mid_y + knock_code_y_arr[3]) / 2; // tmp. todo: work here. averaging functions, etc.
-			}
-		}
 
-		//fix: [1,4][1,4][1,4][2,3]
-		if (knock_code_x_arr[3] > knock_code_mid_x) {
-			printk(KERN_INFO "%s: 1checkpt5\n", __func__);
-			if (knock_code_x_arr[3] > knock_code_get_max_min_x(1, 3)) {
-				printk(KERN_INFO "%s: 1checkpt6\n", __func__);
-				knock_code_mid_x = (knock_code_mid_x + knock_code_x_arr[3]) / 2; // tmp. todo: work here. averaging functions, etc.
-			}
-		} else { //fix: [2,3][2,3][2,3][1,4]
-			printk(KERN_INFO "%s: 1checkpt7\n", __func__);
-			if (knock_code_x_arr[3] < knock_code_get_max_min_x(0, 3)) {
-				printk(KERN_INFO "%s: 1checkpt8\n", __func__);
-				knock_code_mid_x = (knock_code_mid_x + knock_code_x_arr[3]) / 2; // tmp. todo: work here. averaging functions, etc.
-			}
-			}
+		knock_code_equalizer_func(knock_code_touch_count);
 
-		if (knock_code_get_no_of_input_taps() == 4) {
-			if (
-				(abs(knock_code_x_arr[0] - knock_code_x_arr[1]) < (2 * knock_code_delta)) &&
-				(abs(knock_code_x_arr[0] - knock_code_x_arr[2]) < (2 * knock_code_delta)) &&
-				(abs(knock_code_x_arr[0] - knock_code_x_arr[3]) < (2 * knock_code_delta)) &&
-				(abs(knock_code_x_arr[1] - knock_code_x_arr[2]) < (2 * knock_code_delta)) &&
-				(abs(knock_code_x_arr[1] - knock_code_x_arr[3]) < (2 * knock_code_delta)) &&
-				(abs(knock_code_x_arr[2] - knock_code_x_arr[3]) < (2 * knock_code_delta))
-			) {
-				printk(KERN_INFO "%s: 1checkpt9\n", __func__);
-				// this is bound to be [1,4][1,4][1,4][1,4]
-				knock_code_mid_x = MAX4(knock_code_x_arr[0],
-										knock_code_x_arr[1],
-										knock_code_x_arr[2],
-										knock_code_x_arr[3]) + (2 * knock_code_delta);
-			}
-
-			if (
-				(abs(knock_code_y_arr[0] - knock_code_y_arr[1]) < (2 * knock_code_delta)) &&
-				(abs(knock_code_y_arr[0] - knock_code_y_arr[2]) < (2 * knock_code_delta)) &&
-				(abs(knock_code_y_arr[0] - knock_code_y_arr[3]) < (2 * knock_code_delta)) &&
-				(abs(knock_code_y_arr[1] - knock_code_y_arr[2]) < (2 * knock_code_delta)) &&
-				(abs(knock_code_y_arr[1] - knock_code_y_arr[3]) < (2 * knock_code_delta)) &&
-				(abs(knock_code_y_arr[2] - knock_code_y_arr[3]) < (2 * knock_code_delta))
-			) {
-				printk(KERN_INFO "%s: 1checkptx\n", __func__);
-				// this is bound to be [1,4][1,4][1,4][1,4]
-				knock_code_mid_y = MAX4(knock_code_y_arr[0],
-										knock_code_y_arr[1],
-										knock_code_y_arr[2],
-										knock_code_y_arr[3]) + (2 * knock_code_delta);
-			}
-
-			knock_code_fixup_inputs(4);
+		if (knock_code_get_no_of_input_taps() == (knock_code_touch_count + 1)) {
+			knock_code_check_for_gamma_variant(knock_code_touch_count);
+			knock_code_fixup_inputs(knock_code_touch_count);
 			knock_code_check_pattern();
 			knock_code_reset_vars(1);
 		}
