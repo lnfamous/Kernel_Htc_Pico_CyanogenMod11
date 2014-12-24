@@ -31,6 +31,8 @@ void knock_code_check_n_reset(void);
 void knock_code_reset_vars(int reset_time);
 void knock_code_func(int *x, int *y);
 
+int knock_code_get_no_of_input_taps(void);
+
 extern unsigned pocket_mod_switch;
 
 int device_is_pocketed();
