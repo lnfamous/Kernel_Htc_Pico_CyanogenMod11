@@ -609,13 +609,6 @@ void doubletap2wake_func(int *x, int *y) {
 
 }
 
-#define MIN(a,b) ((a) <= (b) ? (a) : (b))
-#define MAX(a,b) ((a) >= (b) ? (a) : (b))
-#define MIN3(a,b,c) ( MIN(a, MAX(b,c)) )
-#define MAX3(a,b,c) ( MAX(a, MAX(b,c)) )
-#define MIN4(a,b,c,d) ( MIN(a, MIN3(b,c,d)) )
-#define MAX4(a,b,c,d) ( MAX(a, MAX3(b,c,d)) )
-
 void knock_code_reset_vars(int reset_time)
 {
 	knock_code_touch_count = 0;
