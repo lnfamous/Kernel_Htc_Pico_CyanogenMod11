@@ -648,7 +648,7 @@ int knock_code_get_no_of_input_taps(void) {
 	return 8;
 }
 
-void knock_code_check_pattern(void) {
+int knock_code_check_pattern(void) {
 	int i = 0;
 	bool valid = true;
 	for (i = 0; i < knock_code_get_no_of_input_taps(); i++) {
@@ -662,7 +662,10 @@ void knock_code_check_pattern(void) {
 		printk(KERN_INFO "%s: pattern matches!\n", __func__);
 		//presspwr();
 		printk(KERN_INFO "%s: ---------------------------------------------------\n", __func__);
+		return 1;
 	}
+
+	return 0;
 }
 
 int knock_code_get_max_min_x(int max, int n)
@@ -802,32 +805,15 @@ void knock_code_fixup_inputs(int n) {
 
 }
 
-void knock_code_func(int *x, int *y) {
+void knock_code_func(int *x, int *y)
+{
 
 	knock_code_x_arr[knock_code_touch_count] = *x;
 	knock_code_y_arr[knock_code_touch_count] = *y;
 
-	printk(KERN_INFO "%s: ###################################################\n", __func__);
-	printk(KERN_INFO "%s: ---------------------------------------------------\n", __func__);
-	printk(KERN_INFO "%s: knock_code_touch_count = %d\n", __func__, knock_code_touch_count);
-
-	int tmp_var_loop_show = 0;
-	for (tmp_var_loop_show = 0; tmp_var_loop_show <= knock_code_touch_count; tmp_var_loop_show++) {
-		printk(KERN_INFO "%s: knock_code_x_y[0] = %d,%d\n", __func__, knock_code_x_arr[tmp_var_loop_show], knock_code_y_arr[tmp_var_loop_show]);
-	}
-	printk(KERN_INFO "%s: ---------------------------------------------------\n", __func__);
-
-	if (knock_code_touch_count == 0) { // touch 1
-		knock_code_time[1] = 0;
-		knock_code_touch_count += 1;
-		printk(KERN_INFO "%s: kctc = 0, x = %d, y = %d\n", __func__, *x, *y);
-		printk(KERN_INFO "%s: ---------------------------------------------------\n", __func__);
-		return;
-	}
-
 	if (knock_code_touch_count == 1) { //touch 2
 
-		if (!(
+		if (!( // check for DT2W
 			((abs((knock_code_x_arr[0])-(knock_code_x_arr[1]))) > knock_code_delta) ||
 			((abs((knock_code_y_arr[0])-(knock_code_y_arr[1]))) > knock_code_delta)
 			)) {
@@ -835,53 +821,31 @@ void knock_code_func(int *x, int *y) {
 			return;
 		}
 
+		// starter midx, midy
 		knock_code_mid_x = ((knock_code_x_arr[0] + knock_code_x_arr[1]) / 2);
-
 		knock_code_mid_y = ((knock_code_y_arr[0] + knock_code_y_arr[1]) / 2);
 
+	}
+
+	knock_code_equalizer_func(knock_code_touch_count);
+
+	if (knock_code_get_no_of_input_taps() == (knock_code_touch_count + 1)) {
+		knock_code_check_for_gamma_variant(knock_code_touch_count);
+		knock_code_fixup_inputs(knock_code_touch_count);
+		int check_pattern = knock_code_check_pattern();
+		knock_code_reset_vars(1);
+		if (check_pattern) // prevent kctc from becoming 1
+			return;
+	}
+
+	if (knock_code_touch_count == 0) {
+		knock_code_time[1] = 0;
+	} else {
 		knock_code_time[0] = knock_code_time[1];
 		knock_code_time[1] = 0;
-		knock_code_touch_count += 1;
-		return;
 	}
 
-	if (knock_code_touch_count == 2) { //third touch. lot to do here.
-
-		knock_code_equalizer_func(knock_code_touch_count);
-
-		//fix: 341x, 342x, 431x, 432x;
-		if (knock_code_get_no_of_input_taps() == (knock_code_touch_count + 1)) { // make this a func!, bring above lines here
-			knock_code_check_for_gamma_variant(knock_code_touch_count);
-			knock_code_fixup_inputs(knock_code_touch_count);
-			knock_code_check_pattern();
-			knock_code_reset_vars(1);
-		}
-
-		knock_code_time[0] = knock_code_time[1];
-		knock_code_time[1] = 0;
-		knock_code_touch_count += 1;
-		return;
-	}
-
-	if (knock_code_touch_count == 3) {
-
-		knock_code_equalizer_func(knock_code_touch_count);
-
-		if (knock_code_get_no_of_input_taps() == (knock_code_touch_count + 1)) {
-			knock_code_check_for_gamma_variant(knock_code_touch_count);
-			knock_code_fixup_inputs(knock_code_touch_count);
-			knock_code_check_pattern();
-			knock_code_reset_vars(1);
-		}
-
-		knock_code_touch_count += 1;
-
-		knock_code_time[0] = knock_code_time[1] = 0;
-		knock_code_touch_count = 0;
-
-	}
-
-	printk(KERN_INFO "%s: ###################################################\n", __func__);
+	knock_code_touch_count += 1;
 	return;
 
 }
