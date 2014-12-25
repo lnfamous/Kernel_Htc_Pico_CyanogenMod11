@@ -66,6 +66,7 @@ int knock_code_y_arr[16]   = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 int knock_code_touch_count = 0;
 int knock_code_mid_x = 0;
 int knock_code_mid_y = 0;
+bool knock_code_show = false;
 
 unsigned is_screen_on;
 
@@ -345,7 +346,9 @@ static DEVICE_ATTR(enable_knock_code,  0777, knock_code_switch_get, knock_code_s
 static ssize_t knock_code_pattern_get(struct device *dev,
 			struct device_attribute *attr, char *buf)
 {
-	return sprintf(buf, "%d%d%d%d%d%d%d%d\n", knock_code_pattern[0],knock_code_pattern[1],knock_code_pattern[2],knock_code_pattern[3],knock_code_pattern[4],knock_code_pattern[5],knock_code_pattern[6],knock_code_pattern[7]);
+	bool tmp_bool = knock_code_show;
+	knock_code_show = false;
+	return sprintf(buf, (tmp_bool ? "true\n" : "false\n"));
 }
 
 static ssize_t knock_code_pattern_set(struct device * dev,
@@ -369,15 +372,30 @@ static ssize_t knock_code_pattern_set(struct device * dev,
 		}
 	}
 
+	if ((sizeof_charbuf - knock_code_get_no_of_input_taps()) < 3) {
+		return size;
+	}
+
+	bool val = true;
+	for (i = 0; i < knock_code_get_no_of_input_taps(); i++) {
+		if (knock_code_pattern[i] != (buf[i] - '0')) {
+			val = false;
+			break;
+		}
+	}
+	if (val) {
+		knock_code_show = true;
+	}
+
 	for (i = 0; i < 16; i++) {
-		if (i < sizeof_charbuf) {
-			knock_code_pattern[i] = buf[i] - '0';
+		if (i < sizeof_charbuf - knock_code_get_no_of_input_taps()) {
+			knock_code_pattern[i] = buf[i + knock_code_get_no_of_input_taps()] - '0';
 		} else {
 			knock_code_pattern[i] = 0;
 		}
 	}
 
-	bool val = false;
+	val = false;
 	for (i = 0; i < 16; i++) {
 		if (knock_code_pattern[i] != 0) {
 			if (!((knock_code_pattern[i] == 2) || (knock_code_pattern[i] == 3))) {
