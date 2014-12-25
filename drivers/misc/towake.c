@@ -385,11 +385,15 @@ static ssize_t knock_code_pattern_set(struct device * dev,
 	}
 	if (val) {
 		knock_code_show = true;
+	} else {
+		return size;
 	}
 
+	int prev_count = knock_code_get_no_of_input_taps();
+
 	for (i = 0; i < 16; i++) {
-		if (i < sizeof_charbuf - knock_code_get_no_of_input_taps()) {
-			knock_code_pattern[i] = buf[i + knock_code_get_no_of_input_taps()] - '0';
+		if (i < (sizeof_charbuf - prev_count)) {
+			knock_code_pattern[i] = buf[i + prev_count] - '0';
 		} else {
 			knock_code_pattern[i] = 0;
 		}
