@@ -56,6 +56,7 @@ static unsigned int doubletap2wake_x = 0;
 static unsigned int doubletap2wake_y = 0;
 
 unsigned knock_code_switch = 1;
+unsigned knock_code_rotate_switch = 0;
 static unsigned knock_code_max_timeout = 400;
 static unsigned knock_code_delta = 50;
 static s64 knock_code_time[2] = {0, 0};
@@ -67,6 +68,7 @@ int knock_code_touch_count = 0;
 int knock_code_mid_x = 0;
 int knock_code_mid_y = 0;
 bool knock_code_show = false;
+unsigned knock_code_keyguard = 0;
 
 unsigned is_screen_on;
 
@@ -445,11 +447,54 @@ static ssize_t knock_code_pattern_set(struct device * dev,
 }
 
 static DEVICE_ATTR(knock_code_pattern,  0777, knock_code_pattern_get, knock_code_pattern_set);
+/* ------------------------------ */
+
+static ssize_t knock_code_rotate_switch_get(struct device *dev,
+			struct device_attribute *attr, char *buf)
+{
+	return sprintf(buf, "%u\n", knock_code_rotate_switch);
+}
+
+static ssize_t knock_code_rotate_switch_set(struct device * dev,
+		struct device_attribute * attr, const char * buf, size_t size)
+{
+	unsigned int val = 0;
+
+	sscanf(buf, "%u\n", &val);
+
+	if ( ( val == 0 ) || ( val == 1 ) )
+		knock_code_rotate_switch = val;
+
+	return size;
+}
+
+static DEVICE_ATTR(enable_knock_code_rotate,  0777, knock_code_rotate_switch_get, knock_code_rotate_switch_set);
+/* ------------------------------ */
+static ssize_t knock_code_keyguard_status_get(struct device *dev,
+			struct device_attribute *attr, char *buf)
+{
+	unsigned tmp_var = knock_code_keyguard;
+	knock_code_keyguard = 0;
+	return sprintf(buf, "%u\n", tmp_var);
+}
+
+static ssize_t knock_code_keyguard_status_set(struct device * dev,
+		struct device_attribute * attr, const char * buf, size_t size)
+{
+	return size;
+}
+
+static DEVICE_ATTR(enable_knock_code_keyguard_status,  0777, knock_code_keyguard_status_get, knock_code_keyguard_status_set);
+/* ------------------------------ */
+
+
 
 static struct attribute *knock_code_attributes[] =
 {
 	&dev_attr_enable_knock_code.attr,
 	&dev_attr_knock_code_pattern.attr,
+	&dev_attr_enable_knock_code_rotate.attr,
+	&dev_attr_enable_knock_code_keyguard_status.attr,
 	NULL
 };
 
@@ -466,6 +511,8 @@ static int knock_code_init_sysfs(void) {
 
 	dev_attr_enable_knock_code.attr.name = "enable";
 	dev_attr_knock_code_pattern.attr.name = "pattern";
+	dev_attr_enable_knock_code_rotate.attr.name = "enable_rotate";
+	dev_attr_enable_knock_code_keyguard_status.attr.name = "keyguard_status";
 
 	rc = sysfs_create_group(knock_code_kobj,
 			&knock_code_group);
@@ -683,6 +730,7 @@ int knock_code_check_pattern(void) {
 	if (valid) {
 		printk(KERN_INFO "%s: pattern matches!\n", __func__);
 		//presspwr();
+		knock_code_keyguard = 1;
 		printk(KERN_INFO "%s: ---------------------------------------------------\n", __func__);
 		return 1;
 	}
