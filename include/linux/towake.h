@@ -6,6 +6,7 @@
 #include <linux/hrtimer.h>
 #include <linux/input.h>
 #include <linux/ktime.h>
+#include <linux/kmod.h>
 #include <linux/miscdevice.h>
 #ifdef CONFIG_INPUT_CAPELLA_CM3628_POCKETMOD
 #include <linux/pocket_mod.h>
@@ -38,5 +39,8 @@ int knock_code_get_max_min_y(int max, int n);
 extern unsigned pocket_mod_switch;
 
 int device_is_pocketed();
+
+void broadcast_screen_on_intent();
+void broadcast_screen_off_intent();
 
 #endif	/* _LINUX_TOWAKE_H */

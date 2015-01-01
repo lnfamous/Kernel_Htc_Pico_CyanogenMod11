@@ -69,8 +69,14 @@ int knock_code_mid_x = 0;
 int knock_code_mid_y = 0;
 bool knock_code_show = false;
 unsigned knock_code_keyguard = 0;
-
 unsigned is_screen_on;
+
+static char *envp[] = {
+	"HOME=/",
+	"BOOTCLASSPATH=/system/framework/core.jar:/system/framework/conscrypt.jar:/system/framework/okhttp.jar:/system/framework/core-junit.jar:/system/framework/bouncycastle.jar:/system/framework/ext.jar:/system/framework/framework.jar:/system/framework/framework2.jar:/system/framework/telephony-common.jar:/system/framework/voip-common.jar:/system/framework/mms-common.jar:/system/framework/android.policy.jar:/system/framework/services.jar:/system/framework/apache-xml.jar:/system/framework/webviewchromium.jar",
+	"PATH=/sbin:/vendor/bin:/system/sbin:/system/bin:/system/xbin", NULL };
+static char *argv_screen_on[]  = {"/system/bin/am", "broadcast", "-a", "org.omnirom.device.DeviceSettings.HANDLE_SCREEN_ON", NULL};
+static char *argv_screen_off[] = {"/system/bin/am", "broadcast", "-a", "org.omnirom.device.DeviceSettings.HANDLE_SCREEN_OFF", NULL};
 
 static struct input_dev * towake_pwrdev;
 
@@ -579,7 +585,6 @@ static int pocket_mod_init_sysfs(void) {
 }
 // PocketMod (end)
 
-
 static int pwrdev_init(void) {
 	int ret = 0;
 
@@ -598,6 +603,16 @@ static int pwrdev_init(void) {
 
 	return ret;
 }
+
+// screen on_off intents
+void broadcast_screen_on_intent() {
+	call_usermodehelper(argv_screen_on[0], argv_screen_on, envp, UMH_NO_WAIT);
+}
+
+void broadcast_screen_off_intent() {
+	call_usermodehelper(argv_screen_off[0], argv_screen_off, envp, UMH_NO_WAIT);
+}
+// screen on_off intents (end)
 
 void sweep2wake_set_touch(unsigned i) {
 	if (i)
