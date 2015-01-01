@@ -729,7 +729,7 @@ int knock_code_check_pattern(void) {
 	//todo: rotated pattern.
 	if (valid) {
 		printk(KERN_INFO "%s: pattern matches!\n", __func__);
-		//presspwr();
+		presspwr();
 		knock_code_keyguard = 1;
 		printk(KERN_INFO "%s: ---------------------------------------------------\n", __func__);
 		return 1;
