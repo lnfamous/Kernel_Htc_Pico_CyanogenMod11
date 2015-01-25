@@ -22,7 +22,7 @@
 #include "mipi_dsi.h"
 #include "mipi_novatek.h"
 #include "mdp4.h"
-#ifdef CONFIG_HIMAX_WAKE_MODS
+#ifdef CONFIG_HIMAX_WAKE_MOD_POCKETMOD
 #include <linux/towake.h>
 #endif
 
@@ -495,14 +495,9 @@ static int mipi_novatek_lcd_on(struct platform_device *pdev)
 			mipi_dsi_cmds_tx(&novatek_tx_buf, pico_auo_cmd_on_cmds,
 				ARRAY_SIZE(pico_auo_cmd_on_cmds));
 
-#ifdef CONFIG_HIMAX_WAKE_MODS
 #ifdef CONFIG_HIMAX_WAKE_MOD_POCKETMOD
 	is_screen_on = 1;
-#endif // CONFIG_HIMAX_WAKE_MOD_POCKETMOD
-#ifdef CONFIG_HIMAX_WAKE_MOD_KNOCKCODE
-	broadcast_screen_on_intent();
-#endif // CONFIG_HIMAX_WAKE_MOD_KNOCKCODE
-#endif // CONFIG_HIMAX_WAKE_MODS
+#endif
 
 	return 0;
 }
@@ -522,14 +517,9 @@ static int mipi_novatek_lcd_off(struct platform_device *pdev)
 			mipi_dsi_cmds_tx(&novatek_tx_buf, novatek_display_off_cmds,
 				ARRAY_SIZE(novatek_display_off_cmds));
 
-#ifdef CONFIG_HIMAX_WAKE_MODS
 #ifdef CONFIG_HIMAX_WAKE_MOD_POCKETMOD
 	is_screen_on = 0;
-#endif // CONFIG_HIMAX_WAKE_MOD_POCKETMOD
-#ifdef CONFIG_HIMAX_WAKE_MOD_KNOCKCODE
-	broadcast_screen_off_intent();
-#endif // CONFIG_HIMAX_WAKE_MOD_KNOCKCODE
-#endif // CONFIG_HIMAX_WAKE_MODS
+#endif
 
 	return 0;
 }

@@ -778,16 +778,6 @@ config HIMAX_WAKE_MOD_DOUBLETAP2WAKE
 		toggle this on/off from sysfs later (should they
 		want it)
 
-config HIMAX_WAKE_MOD_KNOCKCODE
-	bool "Knock Code for Himax"
-	depends on HIMAX_WAKE_MODS
-	default y
-	help
-		Say Y here to enable Knock Code. Users can always
-		toggle this on/off from sysfs later (should they
-		want it)
-
-
 config HIMAX_WAKE_MOD_POCKETMOD
 	bool "PocketMod for Himax"
 	depends on HIMAX_WAKE_MODS && INPUT_CAPELLA_CM3628_POCKETMOD

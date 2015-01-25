@@ -16,7 +16,7 @@
 #include "msm_fb.h"
 #include "mipi_dsi.h"
 #include "mipi_samsung.h"
-#ifdef CONFIG_HIMAX_WAKE_MODS
+#ifdef CONFIG_HIMAX_WAKE_MOD_POCKETMOD
 #include <linux/towake.h>
 #endif
 
@@ -471,14 +471,9 @@ static int mipi_samsung_lcd_on(struct platform_device *pdev)
 			mipi_dsi_cmds_tx(&samsung_tx_buf, mipi_power_on_cmd,
 				mipi_power_on_cmd_size);
 
-#ifdef CONFIG_HIMAX_WAKE_MODS
 #ifdef CONFIG_HIMAX_WAKE_MOD_POCKETMOD
 			is_screen_on = 1;
-#endif // CONFIG_HIMAX_WAKE_MOD_POCKETMOD
-#ifdef CONFIG_HIMAX_WAKE_MOD_KNOCKCODE
-			broadcast_screen_on_intent();
-#endif // CONFIG_HIMAX_WAKE_MOD_KNOCKCODE
-#endif // CONFIG_HIMAX_WAKE_MODS
+#endif
 
 		} else {
 			printk(KERN_ERR "panel_type=0x%x not support at power on\n", panel_type);
@@ -510,14 +505,9 @@ static int mipi_samsung_lcd_off(struct platform_device *pdev)
 			mipi_dsi_cmds_tx(&samsung_tx_buf, mipi_power_off_cmd,
 				mipi_power_off_cmd_size);
 
-#ifdef CONFIG_HIMAX_WAKE_MODS
 #ifdef CONFIG_HIMAX_WAKE_MOD_POCKETMOD
 			is_screen_on = 0;
-#endif // CONFIG_HIMAX_WAKE_MOD_POCKETMOD
-#ifdef CONFIG_HIMAX_WAKE_MOD_KNOCKCODE
-			broadcast_screen_off_intent();
-#endif // CONFIG_HIMAX_WAKE_MOD_KNOCKCODE
-#endif // CONFIG_HIMAX_WAKE_MODS
+#endif
 
 	} else
 		printk(KERN_ERR "panel_type=0x%x not support at power off\n",
