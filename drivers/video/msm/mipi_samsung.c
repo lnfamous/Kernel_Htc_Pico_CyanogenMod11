@@ -10,6 +10,7 @@
  * GNU General Public License for more details.
  *
  */
+#include <linux/leds.h>
 #include <mach/panel_id.h>
 #include <mach/debug_display.h>
 #include <mach/htc_battery_common.h>
@@ -19,8 +20,14 @@
 #ifdef CONFIG_HIMAX_WAKE_MOD_POCKETMOD
 #include <linux/towake.h>
 #endif
-
-#include <linux/leds.h>
+#ifdef CONFIG_TOUCHSCREEN_PREVENT_SLEEP
+#if defined(CONFIG_TOUCHSCREEN_SWEEP2WAKE)
+#include <linux/input/sweep2wake.h>
+#endif
+#if defined(CONFIG_TOUCHSCREEN_DOUBLETAP2WAKE)
+#include <linux/input/doubletap2wake.h>
+#endif
+#endif
 
 /* -----------------------------------------------------------------------------
  *                         External routine declaration
@@ -471,8 +478,13 @@ static int mipi_samsung_lcd_on(struct platform_device *pdev)
 			mipi_dsi_cmds_tx(&samsung_tx_buf, mipi_power_on_cmd,
 				mipi_power_on_cmd_size);
 
-#ifdef CONFIG_HIMAX_WAKE_MOD_POCKETMOD
-			is_screen_on = 1;
+#ifdef CONFIG_TOUCHSCREEN_PREVENT_SLEEP
+#if defined(CONFIG_TOUCHSCREEN_SWEEP2WAKE)
+			s2w_scr_suspended = false;
+#endif
+#if defined(CONFIG_TOUCHSCREEN_DOUBLETAP2WAKE)
+			dt2w_scr_suspended = false;
+#endif
 #endif
 
 		} else {
@@ -505,8 +517,13 @@ static int mipi_samsung_lcd_off(struct platform_device *pdev)
 			mipi_dsi_cmds_tx(&samsung_tx_buf, mipi_power_off_cmd,
 				mipi_power_off_cmd_size);
 
-#ifdef CONFIG_HIMAX_WAKE_MOD_POCKETMOD
-			is_screen_on = 0;
+#ifdef CONFIG_TOUCHSCREEN_PREVENT_SLEEP
+#if defined(CONFIG_TOUCHSCREEN_SWEEP2WAKE)
+			s2w_scr_suspended = true;
+#endif
+#if defined(CONFIG_TOUCHSCREEN_DOUBLETAP2WAKE)
+			dt2w_scr_suspended = true;
+#endif
 #endif
 
 	} else

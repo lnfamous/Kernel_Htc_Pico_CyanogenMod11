@@ -2,8 +2,8 @@
  *
  * Copyright (C) 2011 HTC Corporation.
  * Copyright (C) 2013 TeamHackLG
- * Copyright (C) 2014 TeamCody
- * Copyright (C) 2014 Vineeth Raj <contact.twn@opmbx.org>
+ * Copyright (C) 2015 TeamCody
+ * Copyright (C) 2015 Vineeth Raj <contact.twn@opmbx.org>
  *
  * This software is licensed under the terms of the GNU General Public
  * License version 2, as published by the Free Software Foundation, and
@@ -31,18 +31,20 @@
 #include <mach/board.h>
 #include <asm/atomic.h>
 
+#ifdef CONFIG_TOUCHSCREEN_PREVENT_SLEEP
+#ifdef CONFIG_TOUCHSCREEN_SWEEP2WAKE
+#include <linux/input/sweep2wake.h>
+#endif
+#ifdef CONFIG_TOUCHSCREEN_DOUBLETAP2WAKE
+#include <linux/input/doubletap2wake.h>
+#endif
+#endif
+
 #ifdef ABS_MT_SLOT
 #define INPUT_PROTOCOL_B
 #include <linux/input/mt.h>
 #else
 #define INPUT_PROTOCOL_A
-#endif
-
-#ifdef CONFIG_HIMAX_WAKE_MODS
-#include <linux/towake.h>
-#define WAKE_MODS
-int x;
-int y;
 #endif
 
 #define HIMAX_I2C_RETRY_TIMES 10
@@ -439,11 +441,11 @@ static ssize_t himax_reset_set(struct device *dev,
 static DEVICE_ATTR(reset, (S_IWUSR|S_IRUGO),
 	himax_reset_show, himax_reset_set);
 
-#ifdef WAKE_MODS
+#ifdef CONFIG_TOUCHSCREEN_PREVENT_SLEEP
 struct kobject *android_touch_kobj;
 #else
 static struct kobject *android_touch_kobj;
-#endif
+#endif //CONFIG_TOUCHSCREEN_PREVENT_SLEEP
 
 static int himax_touch_sysfs_init(void)
 {
@@ -582,41 +584,14 @@ static void himax_ts_work_func(struct work_struct *work)
 
 		if (ts->debug_log_level & 0x2)
 			printk(KERN_INFO "[TS] All Fingers left\n");
-#ifdef WAKE_MODS
-		if (sweep2wake_switch) {
-			if (sweep2wake_get_touch_status())
-				sweep2wake_set_touch(0);
-		}
-		if (doubletap2wake_switch) {
-			if (!(is_screen_on))
-				if (!(doubletap2wake_check_n_reset()))
-					doubletap2wake_func(&x, &y);
-		}
-#endif
 	} else {
 		finger_pressed = buf[21];
 		for (loop_i = 0; loop_i < HIMAX8526A_FINGER_SUPPORT_NUM; loop_i++) {
 			if (((finger_pressed >> loop_i) & 1) == 1) {
 				int base = loop_i * 4;
-#ifdef WAKE_MODS
-				x = buf[base] << 8 | buf[base + 1];
-				y = (buf[base + 2] << 8 | buf[base + 3]);
-#else
 				int x = buf[base] << 8 | buf[base + 1];
 				int y = (buf[base + 2] << 8 | buf[base + 3]);
-#endif
 				int w = buf[16 + loop_i];
-
-#ifdef WAKE_MODS
-				if (sweep2wake_switch) {
-					if (y > ts->pdata->abs_y_max) {
-						sweep2wake_func(&x/*, &y*/);
-					} else {
-						if (sweep2wake_get_touch_status())
-							sweep2wake_set_touch(0);
-					}
-				}
-#endif
 
 #ifdef INPUT_PROTOCOL_B
 				input_mt_slot(ts->input_dev, loop_i);
@@ -793,7 +768,7 @@ static int himax8526a_probe(struct i2c_client *client, const struct i2c_device_i
 	set_bit(BTN_TOUCH, ts->input_dev->keybit);
 	//set_bit(KEY_APP_SWITCH, ts->input_dev->keybit);
 	set_bit(INPUT_PROP_DIRECT, ts->input_dev->propbit);
-	
+
 #ifdef INPUT_PROTOCOL_A
 	ts->input_dev->mtsize = HIMAX8526A_FINGER_SUPPORT_NUM;
 	input_set_abs_params(ts->input_dev, ABS_MT_TRACKING_ID,
@@ -845,7 +820,7 @@ static int himax8526a_probe(struct i2c_client *client, const struct i2c_device_i
 	if (client->irq) {
 		ts->use_irq = 1;
 		ret = request_irq(client->irq, himax_ts_irq_handler,
-				  IRQF_TRIGGER_LOW, client->name, ts);
+				  IRQF_TRIGGER_LOW | IRQF_NO_SUSPEND, client->name, ts);
 		if (ret == 0)
 			printk(KERN_INFO "%s: irq enabled at qpio: %d\n", __func__, client->irq);
 		else {
@@ -862,9 +837,6 @@ static int himax8526a_probe(struct i2c_client *client, const struct i2c_device_i
 		hrtimer_start(&ts->timer, ktime_set(1, 0), HRTIMER_MODE_REL);
 		printk(KERN_INFO "%s: polling mode enabled\n", __func__);
 	}
-#ifdef WAKE_MODS
-	sweep2wake_set_touch(0);
-#endif
 	return 0;
 
 err_input_register_device_failed:
@@ -907,55 +879,51 @@ static int himax8526a_suspend(struct i2c_client *client, pm_message_t mesg)
 	int ret;
 	uint8_t data = 0x01;
 	struct himax_ts_data *ts = i2c_get_clientdata(client);
-#ifdef WAKE_MODS
-	if (!get_keep_awake()) {
+
+#ifdef CONFIG_TOUCHSCREEN_PREVENT_SLEEP
+#if defined(CONFIG_TOUCHSCREEN_SWEEP2WAKE) || defined(CONFIG_TOUCHSCREEN_DOUBLETAP2WAKE)
+	bool prevent_sleep = false;
 #endif
-		uint8_t new_command[2] = {0x91, 0x00};
-		i2c_himax_master_write(ts->client, new_command, sizeof(new_command));
-#ifdef WAKE_MODS
-	}
+#if defined(CONFIG_TOUCHSCREEN_SWEEP2WAKE)
+	prevent_sleep = (s2w_switch > 0) && (s2w_s2sonly == 0);
 #endif
+#if defined(CONFIG_TOUCHSCREEN_DOUBLETAP2WAKE)
+	prevent_sleep = prevent_sleep || (dt2w_switch > 0);
+#endif
+#endif
+
+#ifdef CONFIG_TOUCHSCREEN_PREVENT_SLEEP
+	if (prevent_sleep) {
+		enable_irq_wake(client->irq);
+	} else {
+#endif
+
+	uint8_t new_command[2] = {0x91, 0x00};
+	i2c_himax_master_write(ts->client, new_command, sizeof(new_command));
+
 	printk(KERN_DEBUG "%s: diag_command= %d\n", __func__, ts->diag_command);
 
-#ifdef WAKE_MODS
-	if (get_keep_awake())
-		enable_irq_wake(client->irq);
-#endif
-
 	printk(KERN_INFO "%s: enter\n", __func__);
-#ifdef WAKE_MODS
-	if (!get_keep_awake())
-#endif
-		disable_irq(client->irq);
+	disable_irq(client->irq);
 
 	if (!ts->use_irq) {
 		ret = cancel_work_sync(&ts->work);
-#ifdef WAKE_MODS
-		if (!get_keep_awake()) {
-#endif
-			if (ret && ts->use_irq)
-				enable_irq(client->irq);
-#ifdef WAKE_MODS
-		}
-#endif
+		if (ret && ts->use_irq)
+			enable_irq(client->irq);
 		if (ret)
 			enable_irq(client->irq);
 	}
 
-#ifdef WAKE_MODS
-	if (!get_keep_awake()) {
-#endif
-		i2c_himax_write_command(ts->client, 0x82);
-		msleep(120);
-		i2c_himax_write_command(ts->client, 0x80);
-		msleep(120);
-		i2c_himax_write(ts->client, 0xD7, &data, 1);
-#ifdef WAKE_MODS
-	}
-#endif
+	i2c_himax_write_command(ts->client, 0x82);
+	msleep(120);
+	i2c_himax_write_command(ts->client, 0x80);
+	msleep(120);
+	i2c_himax_write(ts->client, 0xD7, &data, 1);
 	ts->first_pressed = 0;
 	ts->suspend_mode = 1;
-
+#ifdef CONFIG_TOUCHSCREEN_PREVENT_SLEEP
+	} //prevent_sleep
+#endif
 	return 0;
 }
 
@@ -967,42 +935,52 @@ static int himax8526a_resume(struct i2c_client *client)
 	const uint8_t command_ec_128_raw_baseline_flag = 0x02 | command_ec_128_raw_flag;
 	uint8_t new_command[2] = {0x91, 0x00};
 
-#ifdef WAKE_MODS
-	if (get_keep_awake())
+#ifdef CONFIG_TOUCHSCREEN_PREVENT_SLEEP
+#if defined(CONFIG_TOUCHSCREEN_SWEEP2WAKE) || defined(CONFIG_TOUCHSCREEN_DOUBLETAP2WAKE)
+	bool prevent_sleep = false;
+#endif
+#if defined(CONFIG_TOUCHSCREEN_SWEEP2WAKE)
+	prevent_sleep = (s2w_switch > 0) && (s2w_s2sonly == 0);
+#endif
+#if defined(CONFIG_TOUCHSCREEN_DOUBLETAP2WAKE)
+	prevent_sleep = prevent_sleep || (dt2w_switch > 0);
+#endif
+#endif
+
+#ifdef CONFIG_TOUCHSCREEN_PREVENT_SLEEP
+	if (prevent_sleep) {
 		disable_irq_wake(client->irq);
+	} else {
 #endif
 
 	printk(KERN_INFO "%s: enter\n", __func__);
-#ifdef WAKE_MODS
-	if (!get_keep_awake()) {
+	data[0] = 0x00;
+	i2c_himax_write(ts->client, 0xD7, &data[0], 1);
+	usleep(100);
+
+	data[0] = 0x42;
+	data[1] = 0x02;
+	i2c_himax_master_write(ts->client, data, sizeof(data));
+
+	i2c_himax_write_command(ts->client, 0x81);
+	msleep(50);
+
+	data[0] = 0x02;
+	i2c_himax_write(ts->client, 0x35, &data[0], 1);
+
+	data[0] = 0x0F;
+	data[1] = 0x53;
+	i2c_himax_write(ts->client, 0x36, &data[0], 2);
+
+	data[0] = 0x04;
+	data[1] = 0x02;
+	i2c_himax_write(ts->client, 0xDD, &data[0], 2);
+
+	i2c_himax_write_command(ts->client, 0x83);
+#ifdef CONFIG_TOUCHSCREEN_PREVENT_SLEEP
+	} //prevent_sleep
 #endif
-		data[0] = 0x00;
-		i2c_himax_write(ts->client, 0xD7, &data[0], 1);
-		usleep(100);
-
-		data[0] = 0x42;
-		data[1] = 0x02;
-		i2c_himax_master_write(ts->client, data, sizeof(data));
-
-		i2c_himax_write_command(ts->client, 0x81);
-		msleep(50);
-
-		data[0] = 0x02;
-		i2c_himax_write(ts->client, 0x35, &data[0], 1);
-
-		data[0] = 0x0F;
-		data[1] = 0x53;
-		i2c_himax_write(ts->client, 0x36, &data[0], 2);
-
-		data[0] = 0x04;
-		data[1] = 0x02;
-		i2c_himax_write(ts->client, 0xDD, &data[0], 2);
-
-		i2c_himax_write_command(ts->client, 0x83);
-		printk(KERN_DEBUG "%s: diag_command= %d\n", __func__, ts->diag_command);
-#ifdef WAKE_MODS
-	}
-#endif
+	printk(KERN_DEBUG "%s: diag_command= %d\n", __func__, ts->diag_command);
 	msleep(10);
 	if (ts->diag_command == 1 || ts->diag_command == 3 || ts->diag_command == 5) {
 		new_command[1] = command_ec_128_raw_baseline_flag;
@@ -1019,16 +997,10 @@ static int himax8526a_resume(struct i2c_client *client)
 	i2c_himax_master_write(ts->client, ts->cable_config, sizeof(ts->cable_config));
 
 	ts->suspend_mode = 0;
-#ifdef WAKE_MODS
-	sweep2wake_set_touch(0);
-#endif
-#ifdef WAKE_MODS
-	if (!get_keep_awake()) {
+#ifdef CONFIG_TOUCHSCREEN_PREVENT_SLEEP
+	if (!prevent_sleep)
 #endif
 	enable_irq(client->irq);
-#ifdef WAKE_MODS
-	}
-#endif
 	return 0;
 }
 

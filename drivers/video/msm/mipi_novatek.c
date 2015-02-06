@@ -22,8 +22,13 @@
 #include "mipi_dsi.h"
 #include "mipi_novatek.h"
 #include "mdp4.h"
-#ifdef CONFIG_HIMAX_WAKE_MOD_POCKETMOD
-#include <linux/towake.h>
+#ifdef CONFIG_TOUCHSCREEN_PREVENT_SLEEP
+#if defined(CONFIG_TOUCHSCREEN_SWEEP2WAKE)
+#include <linux/input/sweep2wake.h>
+#endif
+#if defined(CONFIG_TOUCHSCREEN_DOUBLETAP2WAKE)
+#include <linux/input/doubletap2wake.h>
+#endif
 #endif
 
 extern int mipi_status;
@@ -495,10 +500,14 @@ static int mipi_novatek_lcd_on(struct platform_device *pdev)
 			mipi_dsi_cmds_tx(&novatek_tx_buf, pico_auo_cmd_on_cmds,
 				ARRAY_SIZE(pico_auo_cmd_on_cmds));
 
-#ifdef CONFIG_HIMAX_WAKE_MOD_POCKETMOD
-	is_screen_on = 1;
+#ifdef CONFIG_TOUCHSCREEN_PREVENT_SLEEP
+#if defined(CONFIG_TOUCHSCREEN_SWEEP2WAKE)
+	s2w_scr_suspended = false;
 #endif
-
+#if defined(CONFIG_TOUCHSCREEN_DOUBLETAP2WAKE)
+	dt2w_scr_suspended = false;
+#endif
+#endif
 	return 0;
 }
 
@@ -517,8 +526,13 @@ static int mipi_novatek_lcd_off(struct platform_device *pdev)
 			mipi_dsi_cmds_tx(&novatek_tx_buf, novatek_display_off_cmds,
 				ARRAY_SIZE(novatek_display_off_cmds));
 
-#ifdef CONFIG_HIMAX_WAKE_MOD_POCKETMOD
-	is_screen_on = 0;
+#ifdef CONFIG_TOUCHSCREEN_PREVENT_SLEEP
+#if defined(CONFIG_TOUCHSCREEN_SWEEP2WAKE)
+	s2w_scr_suspended = true;
+#endif
+#if defined(CONFIG_TOUCHSCREEN_DOUBLETAP2WAKE)
+	dt2w_scr_suspended = true;
+#endif
 #endif
 
 	return 0;
