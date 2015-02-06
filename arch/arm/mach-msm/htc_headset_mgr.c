@@ -25,6 +25,11 @@
 
 #include <mach/htc_headset_mgr.h>
 
+#ifdef CONFIG_TOUCHSCREEN_PREVENT_SLEEP
+#include <linux/input/wake_helpers.h>
+int headset_plugged_in = 0;
+#endif
+
 #define DRIVER_NAME "HS_MGR"
 
 static struct workqueue_struct *detect_wq;
@@ -889,6 +894,10 @@ int hs_notify_plug_event(int insert)
 {
 	int ret = 0;
 	HS_DBG("Headset status %d", insert);
+
+#ifdef CONFIG_TOUCHSCREEN_PREVENT_SLEEP
+	headset_plugged_in = insert;
+#endif
 
 	mutex_lock(&hi->mutex_lock);
 	hi->is_ext_insert = insert;

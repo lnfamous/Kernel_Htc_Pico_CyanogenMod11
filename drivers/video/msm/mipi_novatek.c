@@ -29,6 +29,7 @@
 #if defined(CONFIG_TOUCHSCREEN_DOUBLETAP2WAKE)
 #include <linux/input/doubletap2wake.h>
 #endif
+#include <linux/input/wake_helpers.h>
 #endif
 
 extern int mipi_status;
@@ -506,6 +507,7 @@ static int mipi_novatek_lcd_on(struct platform_device *pdev)
 #endif
 #if defined(CONFIG_TOUCHSCREEN_DOUBLETAP2WAKE)
 	dt2w_scr_suspended = false;
+	dt2w_sent_play_pause = 0;
 #endif
 #endif
 	return 0;
