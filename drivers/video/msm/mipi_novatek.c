@@ -22,7 +22,6 @@
 #include "mipi_dsi.h"
 #include "mipi_novatek.h"
 #include "mdp4.h"
-#include <linux/lcd_notify.h>
 #ifdef CONFIG_HIMAX_WAKE_MOD_POCKETMOD
 #include <linux/towake.h>
 #endif
@@ -483,7 +482,6 @@ static int mipi_novatek_lcd_on(struct platform_device *pdev)
 	struct msm_panel_info *pinfo;
 	struct dcs_cmd_req cmdreq;
 
-	lcd_notifier_call_chain(LCD_EVENT_ON_START, NULL);
 	mfd = platform_get_drvdata(pdev);
 	if (!mfd)
 		return -ENODEV;
@@ -494,14 +492,13 @@ static int mipi_novatek_lcd_on(struct platform_device *pdev)
 
 	mipi  = &mfd->panel_info.mipi;
 
-	mipi_dsi_cmds_tx(&novatek_tx_buf, pico_auo_cmd_on_cmds,
+			mipi_dsi_cmds_tx(&novatek_tx_buf, pico_auo_cmd_on_cmds,
 				ARRAY_SIZE(pico_auo_cmd_on_cmds));
 
 #ifdef CONFIG_HIMAX_WAKE_MOD_POCKETMOD
 	is_screen_on = 1;
 #endif
 
-	lcd_notifier_call_chain(LCD_EVENT_ON_END, NULL);
 	return 0;
 }
 
@@ -510,7 +507,6 @@ static int mipi_novatek_lcd_off(struct platform_device *pdev)
 	struct msm_fb_data_type *mfd;
 	struct dcs_cmd_req cmdreq;
 
-	lcd_notifier_call_chain(LCD_EVENT_OFF_START, NULL);
 	mfd = platform_get_drvdata(pdev);
 
 	if (!mfd)
@@ -518,14 +514,13 @@ static int mipi_novatek_lcd_off(struct platform_device *pdev)
 	if (mfd->key != MFD_KEY)
 		return -EINVAL;
 
-	mipi_dsi_cmds_tx(&novatek_tx_buf, novatek_display_off_cmds,
+			mipi_dsi_cmds_tx(&novatek_tx_buf, novatek_display_off_cmds,
 				ARRAY_SIZE(novatek_display_off_cmds));
 
 #ifdef CONFIG_HIMAX_WAKE_MOD_POCKETMOD
 	is_screen_on = 0;
 #endif
 
-	lcd_notifier_call_chain(LCD_EVENT_OFF_END, NULL);
 	return 0;
 }
 
