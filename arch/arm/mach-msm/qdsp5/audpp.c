@@ -38,6 +38,11 @@
 
 #include "evlog.h"
 
+#ifdef CONFIG_TOUCHSCREEN_PREVENT_SLEEP
+#include <linux/input/wake_helpers.h>
+bool is_dsp_event = false;
+#endif
+
 enum {
 	EV_NULL,
 	EV_ENABLE,
@@ -287,10 +292,16 @@ static void audpp_dsp_event(void *data, unsigned id, size_t len,
 		if (msg[0] == AUDPP_MSG_ENA_ENA) {
 			MM_INFO("ENABLE\n");
 			audpp->enabled = 1;
+#ifdef CONFIG_TOUCHSCREEN_PREVENT_SLEEP
+			is_dsp_event = true;
+#endif
 			audpp_broadcast(audpp, id, msg);
 		} else if (msg[0] == AUDPP_MSG_ENA_DIS) {
 			MM_INFO("DISABLE\n");
 			audpp->enabled = 0;
+#ifdef CONFIG_TOUCHSCREEN_PREVENT_SLEEP
+			is_dsp_event = false;
+#endif
 			wake_up(&audpp->event_wait);
 			audpp_broadcast(audpp, id, msg);
 		} else {

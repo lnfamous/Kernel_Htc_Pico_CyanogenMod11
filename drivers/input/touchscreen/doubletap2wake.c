@@ -27,6 +27,7 @@
 #include <linux/init.h>
 #include <linux/err.h>
 #include <linux/input/doubletap2wake.h>
+ #include <linux/input/wake_helpers.h>
 #include <linux/slab.h>
 #include <linux/workqueue.h>
 #include <linux/input.h>
@@ -67,6 +68,8 @@ static int touch_x = 0, touch_y = 0, touch_nr = 0, x_pre = 0, y_pre = 0;
 static bool touch_x_called = false, touch_y_called = false, touch_cnt = true;
 static bool exec_count = true;
 bool dt2w_scr_suspended = false;
+static int key_code = KEY_POWER;
+int dt2w_sent_play_pause = 0;
 static struct input_dev * doubletap2wake_pwrdev;
 static DEFINE_MUTEX(pwrkeyworklock);
 static struct workqueue_struct *dt2w_input_wq;
@@ -78,6 +81,9 @@ static int __init read_dt2w_cmdline(char *dt2w)
 	if (strcmp(dt2w, "1") == 0) {
 		pr_info("[cmdline_dt2w]: DoubleTap2Wake enabled. | dt2w='%s'\n", dt2w);
 		dt2w_switch = 1;
+	} else if (strcmp(dt2w, "2") == 0) {
+		pr_info("[cmdline_dt2w]: DoubleTap2Wake (MusicMod(e)) enabled. | dt2w='%s'\n", dt2w);
+		dt2w_switch = 2;
 	} else if (strcmp(dt2w, "0") == 0) {
 		pr_info("[cmdline_dt2w]: DoubleTap2Wake disabled. | dt2w='%s'\n", dt2w);
 		dt2w_switch = 0;
@@ -101,10 +107,10 @@ static void doubletap2wake_reset(void) {
 static void doubletap2wake_presspwr(struct work_struct * doubletap2wake_presspwr_work) {
 	if (!mutex_trylock(&pwrkeyworklock))
                 return;
-	input_event(doubletap2wake_pwrdev, EV_KEY, KEY_POWER, 1);
+	input_event(doubletap2wake_pwrdev, EV_KEY, key_code, 1);
 	input_event(doubletap2wake_pwrdev, EV_SYN, 0, 0);
 	msleep(DT2W_PWRKEY_DUR);
-	input_event(doubletap2wake_pwrdev, EV_KEY, KEY_POWER, 0);
+	input_event(doubletap2wake_pwrdev, EV_KEY, key_code, 0);
 	input_event(doubletap2wake_pwrdev, EV_SYN, 0, 0);
 	msleep(DT2W_PWRKEY_DUR);
         mutex_unlock(&pwrkeyworklock);
@@ -161,8 +167,16 @@ static void detect_doubletap2wake(int x, int y, bool st)
 			new_touch(x, y);
 		}
 		if ((touch_nr > 1)) {
-			pr_info(LOGTAG"ON\n");
 			exec_count = false;
+			if ((dt2w_switch == 2) && ((headset_plugged_in && is_dsp_event) || dt2w_sent_play_pause)) {
+				pr_info(LOGTAG"MusicMod(e): play_pause\n");
+				key_code =  KEY_PLAYPAUSE;
+				dt2w_sent_play_pause = 1;
+			} else {
+				pr_info(LOGTAG"on_off\n");
+				key_code =  KEY_POWER;
+				dt2w_sent_play_pause = 0;
+			}
 			doubletap2wake_pwrtrigger();
 			doubletap2wake_reset();
 		}
@@ -290,8 +304,10 @@ static ssize_t dt2w_doubletap2wake_dump(struct device *dev,
 		struct device_attribute *attr, const char *buf, size_t count)
 {
 	if (buf[0] >= '0' && buf[0] <= '2' && buf[1] == '\n')
-                if (dt2w_switch != buf[0] - '0')
-		        dt2w_switch = buf[0] - '0';
+		if (dt2w_switch != buf[0] - '0') {
+			dt2w_switch = buf[0] - '0';
+			dt2w_sent_play_pause = 0;
+		}
 
 	return count;
 }
@@ -338,6 +354,7 @@ static int __init doubletap2wake_init(void)
 	}
 
 	input_set_capability(doubletap2wake_pwrdev, EV_KEY, KEY_POWER);
+	input_set_capability(doubletap2wake_pwrdev, EV_KEY, KEY_PLAYPAUSE);
 	doubletap2wake_pwrdev->name = "dt2w_pwrkey";
 	doubletap2wake_pwrdev->phys = "dt2w_pwrkey/input0";
 
