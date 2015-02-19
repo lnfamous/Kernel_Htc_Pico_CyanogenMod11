@@ -81,3 +81,4 @@ obj-$(CONFIG_TOUCHSCREEN_HIMAX_SH)	+= himax8526a-sh.o
 obj-$(CONFIG_TOUCHSCREEN_HIMAX_SH2)	+= himax8526a-sh2.o
 obj-$(CONFIG_TOUCHSCREEN_SWEEP2WAKE)		+= sweep2wake.o
 obj-$(CONFIG_TOUCHSCREEN_DOUBLETAP2WAKE)	+= doubletap2wake.o
+obj-$(CONFIG_TOUCHSCREEN_PREVENT_SLEEP)		+= wake_helpers.o

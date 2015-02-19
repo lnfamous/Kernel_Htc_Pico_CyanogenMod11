@@ -1,5 +1,6 @@
 /*
- * include/linux/input/wake_helpers.h
+ * drivers/input/touchscreen/wake_helpers.c
+ *
  *
  * Copyright (c) 2015, Vineeth Raj <contact.twn@openmailbox.org>
  *
@@ -18,22 +19,12 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
-#ifndef _LINUX_WAKE_HELPERS_H
-#define _LINUX_WAKE_HELPERS_H
+#include <linux/input/wake_helpers.h>
 
-#include <stdbool.h>
+int is_headset_in_use(void) {
+	return (headset_plugged_in && is_dsp_event);
+}
 
-//extern int var_is_earpiece_on; // TODO: fixup on Pico later
-extern int headset_plugged_in;
-extern bool is_dsp_event;
-extern int var_is_headset_in_use;
-
-extern bool s2w_scr_suspended;
-extern bool dt2w_scr_suspended;
-
-int is_headset_in_use(void);
-int is_earpiece_on(void);
-
-extern int dt2w_sent_play_pause;
-
-#endif  /* _LINUX_WAKE_HELPERS_H */
+int is_earpiece_on(void) {
+	return 0; // TODO: fixup on Pico later.
+}
