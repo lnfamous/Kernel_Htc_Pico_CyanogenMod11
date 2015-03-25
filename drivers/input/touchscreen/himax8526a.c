@@ -820,7 +820,11 @@ static int himax8526a_probe(struct i2c_client *client, const struct i2c_device_i
 	if (client->irq) {
 		ts->use_irq = 1;
 		ret = request_irq(client->irq, himax_ts_irq_handler,
+#ifdef CONFIG_TOUCHSCREEN_PREVENT_SLEEP
 				  IRQF_TRIGGER_LOW | IRQF_NO_SUSPEND, client->name, ts);
+#else
+				  IRQF_TRIGGER_LOW, client->name, ts);
+#endif
 		if (ret == 0)
 			printk(KERN_INFO "%s: irq enabled at qpio: %d\n", __func__, client->irq);
 		else {
