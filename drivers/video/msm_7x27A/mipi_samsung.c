@@ -505,8 +505,13 @@ static int mipi_samsung_lcd_on(struct platform_device *pdev)
 
 static int mipi_samsung_lcd_off(struct platform_device *pdev)
 {
-#ifdef CONFIG_HIMAX_WAKE_MOD_POCKETMOD
-	is_screen_on = 0;
+#ifdef CONFIG_TOUCHSCREEN_PREVENT_SLEEP
+#if defined(CONFIG_TOUCHSCREEN_SWEEP2WAKE)
+	s2w_scr_suspended = false;
+#endif
+#if defined(CONFIG_TOUCHSCREEN_DOUBLETAP2WAKE)
+	dt2w_scr_suspended = false;
+#endif
 #endif
 	struct msm_fb_data_type *mfd;
 
