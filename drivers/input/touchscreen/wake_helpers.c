@@ -36,5 +36,5 @@ bool get_s2w_scr_suspended() {
 }
 
 bool get_dt2w_scr_suspended() {
-    reutnr dt2w_scr_suspended || htc_on_charge;
+    return dt2w_scr_suspended || htc_on_charge;
 }
