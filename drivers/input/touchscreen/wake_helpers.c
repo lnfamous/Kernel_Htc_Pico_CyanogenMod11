@@ -32,9 +32,18 @@ int is_earpiece_on(void) {
 bool get_s2w_scr_suspended() {
     //s2w_scr_suspended == false
     //htc_on_charge == true
-    return s2w_scr_suspended || htc_on_charge;
+    //if screen is !suspended; and htc_on_charge is true; return screen_suspended.
+    if (!s2w_scr_suspended) {
+        if (htc_on_charge)
+            return true;
+    }
+    return s2w_scr_suspended;
 }
 
 bool get_dt2w_scr_suspended() {
-    return dt2w_scr_suspended || htc_on_charge;
+    if (!dt2w_scr_suspended) {
+        if (htc_on_charge)
+            return true;
+    }
+    return dt2w_scr_suspended;
 }
