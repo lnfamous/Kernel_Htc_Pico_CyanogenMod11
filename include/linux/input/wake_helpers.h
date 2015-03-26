@@ -29,6 +29,9 @@ extern bool is_dsp_event;
 extern bool htc_on_charge;
 extern int var_is_headset_in_use;
 
+extern bool s2w_scr_suspended;
+extern bool dt2w_scr_suspended;
+
 int is_headset_in_use(void);
 int is_earpiece_on(void);
 

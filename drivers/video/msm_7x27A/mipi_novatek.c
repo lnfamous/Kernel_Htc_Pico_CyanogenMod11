@@ -499,10 +499,10 @@ static int mipi_novatek_lcd_on(struct platform_device *pdev)
 {
 #ifdef CONFIG_TOUCHSCREEN_PREVENT_SLEEP
 #if defined(CONFIG_TOUCHSCREEN_SWEEP2WAKE)
-	s2w_scr_suspended = false;
+    s2w_scr_suspended = false;
 #endif
 #if defined(CONFIG_TOUCHSCREEN_DOUBLETAP2WAKE)
-	dt2w_scr_suspended = false;
+    dt2w_scr_suspended = false;
 #endif
 #endif
 	struct msm_fb_data_type *mfd;
@@ -558,10 +558,10 @@ static int mipi_novatek_lcd_off(struct platform_device *pdev)
 {
 #ifdef CONFIG_TOUCHSCREEN_PREVENT_SLEEP
 #if defined(CONFIG_TOUCHSCREEN_SWEEP2WAKE)
-	s2w_scr_suspended = true;
+    s2w_scr_suspended = true;
 #endif
 #if defined(CONFIG_TOUCHSCREEN_DOUBLETAP2WAKE)
-	dt2w_scr_suspended = true;
+    dt2w_scr_suspended = true;
 #endif
 #endif
 	struct msm_fb_data_type *mfd;
