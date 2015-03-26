@@ -18,12 +18,7 @@
 #include "mipi_samsung.h"
 
 #ifdef CONFIG_TOUCHSCREEN_PREVENT_SLEEP
-#if defined(CONFIG_TOUCHSCREEN_SWEEP2WAKE)
-#include <linux/input/sweep2wake.h>
-#endif
-#if defined(CONFIG_TOUCHSCREEN_DOUBLETAP2WAKE)
-#include <linux/input/doubletap2wake.h>
-#endif
+#include <linux/input/wake_helpers.h>
 #endif
 /* -----------------------------------------------------------------------------
  *                         External routine declaration
@@ -449,14 +444,6 @@ void mipi_samsung_panel_type_detect(struct mipi_panel_info *mipi)
 
 static int mipi_samsung_lcd_on(struct platform_device *pdev)
 {
-#ifdef CONFIG_TOUCHSCREEN_PREVENT_SLEEP
-#if defined(CONFIG_TOUCHSCREEN_SWEEP2WAKE)
-            s2w_scr_suspended = true;
-#endif
-#if defined(CONFIG_TOUCHSCREEN_DOUBLETAP2WAKE)
-            dt2w_scr_suspended = true;
-#endif
-#endif
 	struct msm_fb_data_type *mfd;
 	struct msm_fb_panel_data *pdata = NULL;
 	struct mipi_panel_info *mipi;
@@ -500,19 +487,20 @@ static int mipi_samsung_lcd_on(struct platform_device *pdev)
 	}
 	PR_DISP_DEBUG("Init done!\n");
 
+#ifdef CONFIG_TOUCHSCREEN_PREVENT_SLEEP
+#if defined(CONFIG_TOUCHSCREEN_SWEEP2WAKE)
+	s2w_scr_suspended = true;
+#endif
+#if defined(CONFIG_TOUCHSCREEN_DOUBLETAP2WAKE)
+	dt2w_scr_suspended = true;
+#endif
+#endif
+
 	return 0;
 }
 
 static int mipi_samsung_lcd_off(struct platform_device *pdev)
 {
-#ifdef CONFIG_TOUCHSCREEN_PREVENT_SLEEP
-#if defined(CONFIG_TOUCHSCREEN_SWEEP2WAKE)
-	s2w_scr_suspended = false;
-#endif
-#if defined(CONFIG_TOUCHSCREEN_DOUBLETAP2WAKE)
-	dt2w_scr_suspended = false;
-#endif
-#endif
 	struct msm_fb_data_type *mfd;
 
 	PR_DISP_INFO("%s\n", __func__);
@@ -531,6 +519,15 @@ static int mipi_samsung_lcd_off(struct platform_device *pdev)
 	} else
 		printk(KERN_ERR "panel_type=0x%x not support at power off\n",
 			panel_type);
+
+#ifdef CONFIG_TOUCHSCREEN_PREVENT_SLEEP
+#if defined(CONFIG_TOUCHSCREEN_SWEEP2WAKE)
+	s2w_scr_suspended = false;
+#endif
+#if defined(CONFIG_TOUCHSCREEN_DOUBLETAP2WAKE)
+	dt2w_scr_suspended = false;
+#endif
+#endif
 
 	return 0;
 }

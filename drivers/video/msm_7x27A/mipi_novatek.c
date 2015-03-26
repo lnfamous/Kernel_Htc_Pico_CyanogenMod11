@@ -17,12 +17,7 @@
 #include "mipi_dsi.h"
 #include "mipi_novatek.h"
 #ifdef CONFIG_TOUCHSCREEN_PREVENT_SLEEP
-#if defined(CONFIG_TOUCHSCREEN_SWEEP2WAKE)
-#include <linux/input/sweep2wake.h>
-#endif
-#if defined(CONFIG_TOUCHSCREEN_DOUBLETAP2WAKE)
-#include <linux/input/doubletap2wake.h>
-#endif
+#include <linux/input/wake_helpers.h>
 #endif
 /* -----------------------------------------------------------------------------
  *                         External routine declaration
