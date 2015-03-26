@@ -498,6 +498,8 @@ static int mipi_novatek_lcd_on(struct platform_device *pdev)
 #endif
 #if defined(CONFIG_TOUCHSCREEN_DOUBLETAP2WAKE)
     dt2w_scr_suspended = false;
+    //todo: add htc_on_charge check here :(
+    dt2w_sent_play_pause = 0;
 #endif
 #endif
 	struct msm_fb_data_type *mfd;
