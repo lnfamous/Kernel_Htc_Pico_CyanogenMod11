@@ -49,6 +49,11 @@
 #include "mdp4.h"
 #include "mipi_dsi.h"
 
+#ifdef CONFIG_TOUCHSCREEN_PREVENT_SLEEP
+#include <linux/input/wake_helpers.h>
+bool htc_on_charge = false;
+#endif
+
 #if defined CONFIG_MACH_PRIMODS || defined CONFIG_MACH_PRIMODD
 #define PRIMO_DS_DD_ESD_WORKAROUND 1
 #endif
@@ -950,6 +955,9 @@ static void msmfb_onchg_suspend(struct early_suspend *h)
 	MSM_FB_INFO("%s is done.\n", __func__);
 
 	in_onchg_resume = FALSE;
+#ifdef CONFIG_TOUCHSCREEN_PREVENT_SLEEP
+	htc_on_charge = false;
+#endif
 	mutex_unlock(&suspend_mutex);
 }
 
@@ -965,6 +973,9 @@ static void msmfb_onchg_resume(struct early_suspend *h)
 	MSM_FB_INFO("%s is done.\n", __func__);
 
 	in_onchg_resume = TRUE;
+#ifdef CONFIG_TOUCHSCREEN_PREVENT_SLEEP
+	htc_on_charge =  true;
+#endif
 	mutex_unlock(&suspend_mutex);
 }
 #endif /* CONFIG_HTC_ONMODE_CHARGING */

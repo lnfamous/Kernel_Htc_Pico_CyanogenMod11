@@ -26,6 +26,7 @@
 //extern int var_is_earpiece_on; // TODO: fixup on Pico later
 extern int headset_plugged_in;
 extern bool is_dsp_event;
+extern bool htc_on_charge;
 extern int var_is_headset_in_use;
 
 int is_headset_in_use(void);
