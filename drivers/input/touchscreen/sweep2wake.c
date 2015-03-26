@@ -228,14 +228,14 @@ static void detect_sweep2wake(int x, int y, bool st)
 		if (s2w_keypad_swipe_length == 2) {
 			if (x == S2W_KEY_CENTER) {
 				if (x_pre == S2W_KEY_LEFT) {
-					if (s2w_scr_suspended) {
+					if (get_s2w_scr_suspended()) {
 #if S2W_DEBUG
 						pr_info(LOGTAG"LTR: keypad: ON\n");
 #endif
 						sweep2wake_pwrtrigger();
 					}
 				} else if (x_pre == S2W_KEY_RIGHT) {
-					if (!s2w_scr_suspended) {
+					if (!get_s2w_scr_suspended()) {
 #if S2W_DEBUG
 						pr_info(LOGTAG"RTL: keypad: OFF\n");
 #endif
@@ -246,14 +246,14 @@ static void detect_sweep2wake(int x, int y, bool st)
 		} else if (s2w_keypad_swipe_length == 3) {
 			if (x_pre == S2W_KEY_CENTER) {
 				if (x == S2W_KEY_LEFT) {
-					if (!s2w_scr_suspended) {
+					if (!get_s2w_scr_suspended()) {
 #if S2W_DEBUG
 						pr_info(LOGTAG"RTL: keypad: OFF\n");
 #endif
 						sweep2wake_pwrtrigger();
 					}
 				} else if (x == S2W_KEY_RIGHT) {
-					if (s2w_scr_suspended) {
+					if (get_s2w_scr_suspended()) {
 #if S2W_DEBUG
 						pr_info(LOGTAG"LTR: keypad: ON\n");
 #endif
@@ -266,7 +266,7 @@ static void detect_sweep2wake(int x, int y, bool st)
 	}
 #endif // EXP_KEYPAD_S2W
 
-	if ((single_touch) && (s2w_scr_suspended == true) && (s2w_switch > 0 && ((s2w_switch == 3) ? 1 : !s2w_s2sonly))) {
+	if ((single_touch) && (get_s2w_scr_suspended() == true) && (s2w_switch > 0 && ((s2w_switch == 3) ? 1 : !s2w_s2sonly))) {
 		//left->right (screen_off)
 		if (is_ltr) {
 			prevx = 0;
@@ -356,7 +356,7 @@ static void detect_sweep2wake(int x, int y, bool st)
 			}
 		}
 	//right->left (screen_on)
-	} else if ((single_touch) && (s2w_scr_suspended == false) && (s2w_switch > 0)) {
+	} else if ((single_touch) && (get_s2w_scr_suspended() == false) && (s2w_switch > 0)) {
 		scr_on_touch=true;
 		prevx = S2W_X_MAX;
 		nextx = S2W_X_B2;
@@ -429,7 +429,7 @@ static void s2w_input_event(struct input_handle *handle, unsigned int type,
 		if ((value == S2W_KEY_LEFT) || (value == S2W_KEY_CENTER) || (value == S2W_KEY_RIGHT)) {
 			if (x_pre == 0) {
 				if ((value == S2W_KEY_LEFT) || (value == S2W_KEY_RIGHT)) {
-					if (s2w_scr_suspended) {
+					if (get_s2w_scr_suspended()) {
 						if (value == S2W_KEY_LEFT) {
 							x_pre = value;
 						}
@@ -447,12 +447,12 @@ static void s2w_input_event(struct input_handle *handle, unsigned int type,
 					if (x_pre == S2W_KEY_CENTER) {
 						if (touch_x == S2W_KEY_LEFT)
 							if (value == S2W_KEY_RIGHT)
-								if (s2w_scr_suspended)
+								if (get_s2w_scr_suspended())
 									sweep2wake_reset();
 
 						if (touch_x == S2W_KEY_RIGHT)
 							if (value == S2W_KEY_LEFT)
-								if (!s2w_scr_suspended)
+								if (!get_s2w_scr_suspended())
 									sweep2wake_reset();
 					}
 				}

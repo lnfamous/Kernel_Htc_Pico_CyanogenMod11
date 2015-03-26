@@ -28,3 +28,13 @@ int is_headset_in_use(void) {
 int is_earpiece_on(void) {
 	return 0; // TODO: fixup on Pico later.
 }
+
+bool get_s2w_scr_suspended() {
+    //s2w_scr_suspended == false
+    //htc_on_charge == true
+    return s2w_scr_suspended || htc_on_charge;
+}
+
+bool get_dt2w_scr_suspended() {
+    reutnr dt2w_scr_suspended || htc_on_charge;
+}

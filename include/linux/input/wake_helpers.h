@@ -35,6 +35,9 @@ extern bool dt2w_scr_suspended;
 int is_headset_in_use(void);
 int is_earpiece_on(void);
 
+bool get_s2w_scr_suspended();
+bool get_dt2w_scr_suspended();
+
 extern int dt2w_sent_play_pause;
 
 #endif  /* _LINUX_WAKE_HELPERS_H */

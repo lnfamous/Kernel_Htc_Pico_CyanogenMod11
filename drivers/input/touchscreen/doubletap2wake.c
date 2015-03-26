@@ -247,7 +247,7 @@ static void dt2w_input_event(struct input_handle *handle, unsigned int type,
 		(code==ABS_MT_TRACKING_ID) ? "ID" :
 		"undef"), code, value);
 #endif
-	if (!dt2w_scr_suspended)
+	if (!get_dt2w_scr_suspended())
 		return;
 
 	if (code == ABS_MT_SLOT) {
