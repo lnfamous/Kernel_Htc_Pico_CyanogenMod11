@@ -917,6 +917,9 @@ static void msmfb_early_resume(struct early_suspend *h)
 		printk(KERN_WARNING "[DISP] %s: already resume. skip!\n", __func__);
 #ifdef CONFIG_TOUCHSCREEN_PREVENT_SLEEP
 		htc_on_charge = false;
+#if defined(CONFIG_TOUCHSCREEN_DOUBLETAP2WAKE)
+		dt2w_sent_play_pause = 0;
+#endif
 #endif
 		hr_msleep(20);
 	}
