@@ -38,6 +38,10 @@ int is_earpiece_on(void);
 bool get_s2w_scr_suspended();
 bool get_dt2w_scr_suspended();
 
+
+extern unsigned pocket_mod_switch;
+int device_is_pocketed();
+
 extern int dt2w_sent_play_pause;
 
 #endif  /* _LINUX_WAKE_HELPERS_H */

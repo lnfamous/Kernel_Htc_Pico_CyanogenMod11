@@ -130,6 +130,13 @@ static void doubletap2wake_reset(void) {
 
 /* PowerKey work func */
 static void doubletap2wake_presspwr(struct work_struct * doubletap2wake_presspwr_work) {
+
+#ifdef CONFIG_HIMAX_WAKE_MOD_POCKETMOD
+	if (pocket_mod_switch)
+		if (device_is_pocketed())
+			return;
+#endif
+
 	if (!mutex_trylock(&pwrkeyworklock))
                 return;
 	input_event(doubletap2wake_pwrdev, EV_KEY, key_code, 1);

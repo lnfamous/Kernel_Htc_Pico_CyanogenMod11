@@ -176,8 +176,16 @@ __setup("s2w=", read_s2w_cmdline);
 
 /* PowerKey work func */
 static void sweep2wake_presspwr(struct work_struct * sweep2wake_presspwr_work) {
+
+#ifdef CONFIG_HIMAX_WAKE_MOD_POCKETMOD
+	if (pocket_mod_switch)
+		if (device_is_pocketed())
+			return;
+#endif
+
 	if (!mutex_trylock(&pwrkeyworklock))
 		return;
+
 	input_event(sweep2wake_pwrdev, EV_KEY, key_code, 1);
 	input_event(sweep2wake_pwrdev, EV_SYN, 0, 0);
 	msleep(S2W_PWRKEY_DUR);
