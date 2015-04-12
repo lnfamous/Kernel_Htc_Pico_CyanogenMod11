@@ -19,6 +19,7 @@
 #include <linux/mtd/partitions.h>
 
 extern struct flash_platform_data msm_nand_data;
+static char *glumname = "glumboot";
 
 int configured = 0;
 
@@ -30,12 +31,14 @@ static int configure_glumberg(void) {
 	unsigned userdata_part = 0;
 	unsigned devlog_part = 0;
 	unsigned misc_part = 0;
+	unsigned glumboot_part = 0;
 
 	int err = 0;
 
 	printk(KERN_INFO "glumberg: going to try configure glumberg\n");
 
 	unsigned count = msm_nand_data.nr_parts;
+	glumboot_part = count;
 	int n = 0;
 
 	for (n = 0; n < count; n++) {
@@ -54,8 +57,9 @@ static int configure_glumberg(void) {
 			userdata_part = n;
 		if (!(strcmp(msm_nand_data.parts[n].name, "devlog")))
 			devlog_part = n;
-		if (!(strcmp(msm_nand_data.parts[n].name, "misc")))
+		if (!(strcmp(msm_nand_data.parts[n].name, "misc"))) {
 			misc_part = n;
+		}
 	}
 
 	/* First check if we have all the partitions!
@@ -87,6 +91,32 @@ static int configure_glumberg(void) {
 	msm_nand_data.parts[userdata_part].offset = msm_nand_data.parts[devlog_part].offset + msm_nand_data.parts[devlog_part].size;
 	msm_nand_data.parts[cache_part].offset = msm_nand_data.parts[userdata_part].offset + msm_nand_data.parts[userdata_part].size;
 	msm_nand_data.parts[system_part].offset = msm_nand_data.parts[cache_part].offset + msm_nand_data.parts[cache_part].size;
+
+	/*
+	 * new layout   : recovery::boot::misc::devlog::userdata::cache::system
+	 * glum layout  : recovery::boot::glumboot::misc::devlog::userdata::cache::system
+	 *
+	 */
+
+	// increment msm_nand_data.nr_parts
+	msm_nand_data.nr_parts += 1;
+	count += 1;
+
+	// set glumboot offset to misc
+	msm_nand_data.parts[glumboot_part].offset = msm_nand_data.parts[misc_part].offset;
+	msm_nand_data.parts[glumboot_part].size = one_mb;
+
+	// set misc offset to glumboot offset + one_mb
+	msm_nand_data.parts[misc_part].offset += one_mb;
+
+	// set devlog offset to misc_part.offset + size
+	msm_nand_data.parts[devlog_part].offset = msm_nand_data.parts[misc_part].offset + msm_nand_data.parts[misc_part].size;
+
+	// get one_mb from devlog (for glumboot)
+	msm_nand_data.parts[devlog_part].size -= one_mb;
+
+	//strcpy()
+	msm_nand_data.parts[glumboot_part].name = glumname;
 
 	//let's make logs 'friendly' to read. hex is hard to 'read'.
 	for (n = 0; n < count; n++) {
