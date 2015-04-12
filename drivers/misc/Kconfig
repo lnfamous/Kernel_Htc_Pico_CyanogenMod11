@@ -740,6 +740,11 @@ config PICO_NAND_RESIZE_PART
          from the userdata, cache and devlog partitions as
          defined below, for the 'system' partition.
 
+config PICO_PROJECT_GLUMBERG
+       depends on MACH_PICO
+       bool "Project Glumberg"
+       default n
+
 source "drivers/misc/c2port/Kconfig"
 source "drivers/misc/eeprom/Kconfig"
 source "drivers/misc/cb710/Kconfig"
