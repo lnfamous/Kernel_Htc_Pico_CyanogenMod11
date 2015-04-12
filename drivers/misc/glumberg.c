@@ -65,7 +65,7 @@ static int configure_glumberg(void) {
 	if ( (!(boot_part)) || (!(system_part)) || (!(cache_part)) || (!(userdata_part)) || (!(devlog_part)) || (misc_part!=0) ) {
 		printk(KERN_WARNING "glumberg: *NOT* modifying partition table!\n");
 		printk(KERN_WARNING "glumberg: One or more partitions *NOT* found!\n");
-		printk(KERN_INFO "glumberg: configuring awsome failed!\n");
+		printk(KERN_INFO "glumberg: configuring glumberg failed!\n");
 		configured = -1;
 		return 1;
 	}
