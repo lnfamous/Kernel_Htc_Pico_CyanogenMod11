@@ -118,6 +118,8 @@ static int configure_glumberg(void) {
 	//strcpy()
 	msm_nand_data.parts[glumboot_part].name = glumname;
 
+	//todo: let's kick out devlog :)
+
 	//let's make logs 'friendly' to read. hex is hard to 'read'.
 	for (n = 0; n < count; n++) {
 		printk(KERN_INFO "Partition (by glumberg) %s "
