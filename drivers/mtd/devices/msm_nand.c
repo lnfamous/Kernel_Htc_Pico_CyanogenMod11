@@ -6964,31 +6964,35 @@ static int __devinit msm_nand_probe(struct platform_device *pdev)
 		return -ENODEV;
 	}
 	msm_nand_phys = res->start;
-	pr_info("%s: phys addr 0x%lx \n", __func__, msm_nand_phys);
+	pr_info("%s: phys addr 0x%lx\n", __func__, msm_nand_phys);
 
 	res = platform_get_resource_byname(pdev,
 					IORESOURCE_MEM, "msm_nandc01_phys");
 	if (!res || !res->start)
 		goto no_dual_nand_ctlr_support;
 	msm_nandc01_phys = res->start;
+	pr_info("%s: glumberg: msm_nandc01_phys 0x%lx\n", __func__, msm_nand_phys);
 
 	res = platform_get_resource_byname(pdev,
 					IORESOURCE_MEM, "msm_nandc10_phys");
 	if (!res || !res->start)
 		goto no_dual_nand_ctlr_support;
 	msm_nandc10_phys = res->start;
+	pr_info("%s: glumberg: msm_nandc10_phys 0x%lx\n", __func__, msm_nand_phys);
 
 	res = platform_get_resource_byname(pdev,
 					IORESOURCE_MEM, "msm_nandc11_phys");
 	if (!res || !res->start)
 		goto no_dual_nand_ctlr_support;
 	msm_nandc11_phys = res->start;
+	pr_info("%s: glumberg: msm_nandc11_phys 0x%lx\n", __func__, msm_nand_phys);
 
 	res = platform_get_resource_byname(pdev,
 					IORESOURCE_MEM, "ebi2_reg_base");
 	if (!res || !res->start)
 		goto no_dual_nand_ctlr_support;
 	ebi2_register_base = res->start;
+	pr_info("%s: glumberg: ebi2_register_base 0x%lx\n", __func__, msm_nand_phys);
 
 	dual_nand_ctlr_present = 1;
 	if (plat_data != NULL)
@@ -7002,11 +7006,14 @@ static int __devinit msm_nand_probe(struct platform_device *pdev)
 		pr_info("%s: Dual Nand Ctrl in interleave mode\n", __func__);
 
 no_dual_nand_ctlr_support:
+	//checkpt1
 	res = platform_get_resource_byname(pdev,
 					IORESOURCE_DMA, "msm_nand_dmac");
 	if (!res || !res->start) {
 		pr_err("%s: invalid msm_nand_dmac resource\n", __func__);
 		return -ENODEV;
+	} else {
+		pr_info("%s: glumberg: checkpt1 0x%lx\n", __func__, res->start);
 	}
 
 	info = kzalloc(sizeof(struct msm_nand_info), GFP_KERNEL);
@@ -7046,12 +7053,14 @@ no_dual_nand_ctlr_support:
 	if (dual_nand_ctlr_present)
 		msm_nand_nc10_xfr_settings(&info->mtd);
 
-	if (msm_nand_scan(&info->mtd, 1))
+	if (msm_nand_scan(&info->mtd, 1)) {
+		pr_err("%s: glumberg: msm_nand_scan err\n", __func__);
 		if (msm_onenand_scan(&info->mtd, 1)) {
 			pr_err("%s: No nand device found\n", __func__);
 			err = -ENXIO;
 			goto out_free_dma_buffer;
 		}
+	}
 
 	err = setup_mtd_device(pdev, info);
 	if (err < 0) {
