@@ -1990,8 +1990,6 @@ msm_nand_read(struct mtd_info *mtd, loff_t from, size_t len,
 	int ret;
 	struct mtd_oob_ops ops;
 
-	/* printk("msm_nand_read %llx %x\n", from, len); */
-
 	ops.mode = MTD_OOB_PLACE;
 	ops.len = len;
 	ops.retlen = 0;
@@ -2003,6 +2001,9 @@ msm_nand_read(struct mtd_info *mtd, loff_t from, size_t len,
 	else
 		ret = msm_nand_read_oob_dualnandc(mtd, from, &ops);
 	*retlen = ops.retlen;
+
+	printk("glumberg: msm_nand_read %llx:%zx:%zx:%x:%x:%x\n", from, len, *retlen, buf[0], buf[1], buf[2]);
+
 	return ret;
 }
 
@@ -2974,6 +2975,9 @@ static int msm_nand_write(struct mtd_info *mtd, loff_t to, size_t len,
 	else
 		ret =  msm_nand_write_oob_dualnandc(mtd, to, &ops);
 	*retlen = ops.retlen;
+
+	printk("glumberg: msm_nand_write %llx:%zx:%zx:%x:%x:%x\n", to, len, *retlen, buf[0], buf[1], buf[2]);
+
 	return ret;
 }
 
@@ -6690,8 +6694,10 @@ int msm_nand_scan(struct mtd_info *mtd, int maxchips)
 
 	/* Probe the Flash device for ONFI compliance */
 	if (!flash_onfi_probe(chip)) {
+		pr_info("%s: glumberg: dev_found = 1\n", __func__);
 		dev_found = 1;
 	} else {
+		pr_info("%s: glumberg: flash_onfi_probe failed\n", __func__);
 		/* Read the Flash ID from the Nand Flash Device */
 		flash_id = flash_read_id(chip);
 		manid = flash_id & 0xFF;
@@ -6830,6 +6836,8 @@ int msm_nand_scan(struct mtd_info *mtd, int maxchips)
 		return -ENODEV;
 	}
 
+	//msm_nand_read(struct mtd_info *mtd, loff_t from, size_t len, size_t *retlen, u_char *buf)
+
 	/* Fill in remaining MTD driver data */
 	mtd->type = MTD_NANDFLASH;
 	mtd->flags = MTD_CAP_NANDFLASH;
@@ -6933,6 +6941,7 @@ static int setup_mtd_device(struct platform_device *pdev,
 	struct flash_platform_data *pdata = pdev->dev.platform_data;
 
 	if (pdata) {
+		pr_info("%s: glumberg: is(pdata)\n", __func__);
 		for (i = 0; i < pdata->nr_parts; i++) {
 			pdata->parts[i].offset = pdata->parts[i].offset
 				* info->mtd.erasesize;
