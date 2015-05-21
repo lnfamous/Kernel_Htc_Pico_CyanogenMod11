@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Vineeth Raj <contact.twn@opmbx.org>
+ * Copyright 2014 Vineeth Raj <contact.twn@openmailbox.org>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
